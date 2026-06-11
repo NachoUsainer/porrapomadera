@@ -8,7 +8,7 @@ en vivo. Tú, como admin, metes los resultados reales y la app recalcula todo so
 - **Predicciones** de resultado por partido (grupos y eliminatorias).
 - **Bonus** en eliminatorias por acertar qué selección clasifica.
 - **Ranking automático** con puntos, resultados exactos y ganadores acertados.
-- **Partidos**: una vez cerrado cada partido (2h antes del inicio) se revelan las
+- **Partidos**: una vez empieza cada partido se revelan las
   predicciones de **todos** los jugadores; antes permanecen ocultas para que nadie copie.
 - **Panel de admin** protegido por contraseña para cargar partidos y resultados.
 
@@ -110,8 +110,8 @@ r16 ;  ;  ; 2026-06-29 18:00 ; Octavos 1 (1A-2B)
   dos selecciones reales del partido, y al cargar el resultado elige también **qué
   selección clasifica** (bonus).
 
-> ⏰ **Cierre de predicciones**: cada partido se cierra **2 horas antes** de su hora de
-> inicio. Hasta ese momento, cada jugador puede cambiar su predicción libremente.
+> ⏰ **Cierre de predicciones**: cada partido se cierra **al empezar** (a su hora de
+> inicio). Hasta ese momento, cada jugador puede cambiar su predicción libremente.
 
 ### Expulsar jugadores duplicados
 

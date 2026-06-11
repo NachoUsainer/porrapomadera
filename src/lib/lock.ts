@@ -1,6 +1,6 @@
 // Reglas de cierre de predicciones.
-// Las predicciones se pueden cambiar hasta 2 HORAS ANTES del inicio del partido.
-export const LOCK_BEFORE_MS = 2 * 60 * 60 * 1000; // 2 horas
+// Las predicciones se pueden cambiar hasta el INICIO del partido (kickoff).
+export const LOCK_BEFORE_MS = 0; // sin margen: cierra justo al empezar
 
 // ¿Está cerrada la predicción de este partido?
 export function isMatchLocked(

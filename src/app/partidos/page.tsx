@@ -66,8 +66,7 @@ export default async function PartidosPage() {
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">Partidos</h1>
         <p className="mx-auto mt-2 max-w-md text-[15px] text-subtle">
-          Las predicciones de todos se revelan al cerrarse el partido (2 h antes del inicio).
-          Hasta entonces, ocultas.
+          Las predicciones de todos se revelan cuando empieza el partido. Hasta entonces, ocultas.
         </p>
       </div>
 

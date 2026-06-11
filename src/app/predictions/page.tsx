@@ -69,7 +69,7 @@ export default async function PredictionsPage() {
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">Mis predicciones</h1>
         <p className="mx-auto mt-2 max-w-md text-[15px] text-subtle">
-          Rellena los resultados. Puedes cambiarlos hasta 2 horas antes del inicio de cada partido.
+          Rellena los resultados. Puedes cambiarlos hasta el inicio de cada partido.
         </p>
       </div>
 
