@@ -12,16 +12,16 @@ export type Gem = { text: string; names?: string[] };
 export const GEMS: Gem[] = [
   { text: "Jordi Matas, portero titular de España 🧤", names: ["jordi", "matas", "jordimatas"] },
   { text: "Si se cae el Estadio Azteca, lo ha construido Sisco 🏗️", names: ["sisco", "sicanovich", "cisco", "francisco"] },
-  { text: "Kandela, abanderado de Senegal y Marruecos 🚩", names: ["kandela", "candela"] },
-  { text: "Yisu malqueda comequeso 🧀", names: ["yisu", "jesus"] },
+  { text: "Kandela, abanderado de Senegal y Marruecos 🚩", names: ["kandela", "candela", "kun", "kan", "pepekan"] },
+  { text: "Yisu malqueda comequeso 🧀", names: ["yisu", "jesus", "crisol"] },
   { text: "Dr. Puerta, diagnostícame esta 🩺", names: ["puerta", "periko", "perico", "pedro", "drpuerta"] },
   { text: "Dr. Martínez, el Kaiser que no fue 👑", names: ["martinez", "andres", "drmartinez", "kaiser"] },
-  { text: "Jorge, viendo un Mundial sin ningún valencianista 🦇", names: ["jorge", "valencianista"] },
+  { text: "Jorge, viendo un Mundial sin ningún valencianista 🦇", names: ["jorge", "giorgio", "valencianista"] },
   { text: "Ramis, titular por banda ⚡", names: ["ramis", "jaume"] },
-  { text: "Rubén, orihueleño hjp 🍊", names: ["ruben", "orihuela", "orihueleño"] },
+  { text: "Rubén, orihueleño hjp 🍊", names: ["ruben", "benru", "sumuki", "sumu", "orihuela", "orihueleño"] },
   { text: "Alvarín, alvarín: alvarín te quiero ❤️", names: ["alvarin", "alvaro", "alvarito", "alvar"] },
   { text: "Joan Aragonés, ese portugués 🇵🇹", names: ["joan", "aragones"] },
-  { text: "Javi va a la estéreo antes que al estadio 🎶", names: ["javi", "javier", "javo"] },
+  { text: "Javi va a la estéreo antes que al estadio 🎶", names: ["javi", "javier", "javo", "espin", "javiespin"] },
   { text: "Jemba Jemba 🃏" },
 ];
 
