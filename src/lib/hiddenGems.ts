@@ -6,19 +6,22 @@
 // ============================================================
 export type Gem = { text: string; names?: string[] };
 
+// Cada "names" lista TODOS los apodos/nombres con los que esa persona podría
+// registrarse. La comparación ignora mayúsculas y acentos. Si un amigo entra con
+// un nombre nuevo que no esté aquí, añádelo a su lista y listo.
 export const GEMS: Gem[] = [
-  { text: "Jordi Matas, portero titular de España 🧤", names: ["jordi"] },
-  { text: "Si se cae el Estadio Azteca, lo ha construido Sisco 🏗️", names: ["sisco"] },
-  { text: "Kandela, abanderado de Senegal y Marruecos 🚩", names: ["kandela"] },
-  { text: "Yisu malqueda comequeso 🧀", names: ["yisu"] },
-  { text: "Dr. Puerta, diagnostícame esta 🩺", names: ["puerta"] },
-  { text: "Dr. Martínez, el Kaiser que no fue 👑", names: ["martinez"] },
-  { text: "Jorge, viendo un Mundial sin ningún valencianista 🦇", names: ["jorge"] },
-  { text: "Ramis, titular por banda ⚡", names: ["ramis"] },
-  { text: "Rubén, orihueleño hjp 🍊", names: ["ruben"] },
-  { text: "Alvarín, alvarín: alvarín te quiero ❤️", names: ["alvarin", "alvaro"] },
-  { text: "Joan Aragonés, ese portugués 🇵🇹", names: ["joan"] },
-  { text: "Javi va a la estéreo antes que al estadio 🎶", names: ["javi", "javier"] },
+  { text: "Jordi Matas, portero titular de España 🧤", names: ["jordi", "matas", "jordimatas"] },
+  { text: "Si se cae el Estadio Azteca, lo ha construido Sisco 🏗️", names: ["sisco", "sicanovich", "cisco", "francisco"] },
+  { text: "Kandela, abanderado de Senegal y Marruecos 🚩", names: ["kandela", "candela"] },
+  { text: "Yisu malqueda comequeso 🧀", names: ["yisu", "jesus"] },
+  { text: "Dr. Puerta, diagnostícame esta 🩺", names: ["puerta", "periko", "perico", "pedro", "drpuerta"] },
+  { text: "Dr. Martínez, el Kaiser que no fue 👑", names: ["martinez", "andres", "drmartinez", "kaiser"] },
+  { text: "Jorge, viendo un Mundial sin ningún valencianista 🦇", names: ["jorge", "valencianista"] },
+  { text: "Ramis, titular por banda ⚡", names: ["ramis", "jaume"] },
+  { text: "Rubén, orihueleño hjp 🍊", names: ["ruben", "orihuela", "orihueleño"] },
+  { text: "Alvarín, alvarín: alvarín te quiero ❤️", names: ["alvarin", "alvaro", "alvarito", "alvar"] },
+  { text: "Joan Aragonés, ese portugués 🇵🇹", names: ["joan", "aragones"] },
+  { text: "Javi va a la estéreo antes que al estadio 🎶", names: ["javi", "javier", "javo"] },
   { text: "Jemba Jemba 🃏" },
 ];
 
