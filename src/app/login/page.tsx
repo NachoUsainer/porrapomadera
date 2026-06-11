@@ -7,13 +7,15 @@ import { redirect } from "next/navigation";
 export default async function LoginPage() {
   if (await getCurrentPlayer()) redirect("/predictions");
   return (
-    <div className="mx-auto max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="mb-1 text-xl font-bold">Entrar</h1>
-      <p className="mb-5 text-sm text-slate-500">Con tu nombre y tu PIN.</p>
-      <AuthForm action={loginPlayer} cta="Entrar" mode="login" />
-      <p className="mt-4 text-center text-sm text-slate-500">
+    <div className="mx-auto max-w-sm">
+      <div className="card p-7">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Entrar</h1>
+        <p className="mb-6 mt-1 text-[15px] text-subtle">Con tu nombre y tu PIN.</p>
+        <AuthForm action={loginPlayer} cta="Entrar" mode="login" />
+      </div>
+      <p className="mt-5 text-center text-sm text-subtle">
         ¿Aún no juegas?{" "}
-        <Link href="/register" className="font-medium text-pitch-700 hover:underline">
+        <Link href="/register" className="font-medium text-accent hover:underline">
           Crear usuario
         </Link>
       </p>

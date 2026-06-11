@@ -3,23 +3,42 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-canvas text-ink antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
 }
 
 @keyframes fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @layer components {
-  .input {
-    @apply rounded border border-slate-300 px-2 py-1 text-sm;
+  /* Tarjeta Apple: blanca, esquinas suaves, borde fino, sombra sutil */
+  .card {
+    @apply rounded-2xl bg-white shadow-card ring-1 ring-hair;
   }
+  /* Campo de formulario minimalista */
+  .input {
+    @apply rounded-xl border-0 bg-black/[0.04] px-3 py-2 text-sm text-ink
+           outline-none ring-1 ring-transparent transition
+           focus:bg-white focus:ring-2 focus:ring-accent/60;
+  }
+  /* Botón principal: pastilla negra estilo Apple */
   .btn-primary {
-    @apply rounded bg-pitch-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-pitch-900 disabled:opacity-50;
+    @apply rounded-full bg-ink px-5 py-2 text-sm font-medium text-white
+           transition hover:opacity-80 disabled:opacity-40;
+  }
+  /* Botón secundario */
+  .btn-ghost {
+    @apply rounded-full bg-black/[0.05] px-4 py-2 text-sm font-medium text-ink
+           transition hover:bg-black/[0.08];
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }

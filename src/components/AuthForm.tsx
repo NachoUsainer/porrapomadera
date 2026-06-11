@@ -19,19 +19,21 @@ export default function AuthForm({
   const [state, formAction, pending] = useActionState(action, {});
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-slate-700">Tu nombre</label>
+        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-subtle">
+          Tu nombre
+        </label>
         <input
           name="name"
           autoComplete="off"
-          placeholder="Ej: Javi"
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+          placeholder="Ej: Crisol"
+          className="input w-full"
           required
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-subtle">
           PIN de 4 dígitos
         </label>
         <input
@@ -40,25 +42,22 @@ export default function AuthForm({
           pattern="\d{4}"
           maxLength={4}
           placeholder="••••"
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 tracking-[0.5em]"
+          className="input w-full tracking-[0.5em]"
           required
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1.5 text-xs text-subtle">
           {mode === "register"
-            ? "Elige un PIN. Lo necesitarás para volver a entrar y que nadie toque tus predicciones."
+            ? "Elige un PIN para volver a entrar y que nadie toque tus predicciones."
             : "El PIN que pusiste al registrarte."}
         </p>
       </div>
 
       {state.error && (
-        <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>
       )}
 
-      <button
-        disabled={pending}
-        className="w-full rounded bg-pitch-700 px-4 py-2 font-semibold text-white hover:bg-pitch-900 disabled:opacity-50"
-      >
-        {pending ? "..." : cta}
+      <button disabled={pending} className="btn-primary w-full py-2.5">
+        {pending ? "…" : cta}
       </button>
     </form>
   );

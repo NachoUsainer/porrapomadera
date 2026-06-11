@@ -66,17 +66,17 @@ export default async function PredictionsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-900">Mis predicciones</h1>
-        <p className="text-sm text-slate-500">
-          Rellena los resultados. Puedes cambiar cada predicción hasta 2 horas antes del inicio del partido.
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">Mis predicciones</h1>
+        <p className="mx-auto mt-2 max-w-md text-[15px] text-subtle">
+          Rellena los resultados. Puedes cambiarlos hasta 2 horas antes del inicio de cada partido.
         </p>
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded border border-dashed border-slate-300 p-6 text-center text-slate-500">
+        <div className="card p-10 text-center text-[15px] text-subtle">
           Todavía no hay partidos cargados. El admin tiene que añadirlos.
-        </p>
+        </div>
       ) : (
         <PredictionsForm rows={rows} />
       )}

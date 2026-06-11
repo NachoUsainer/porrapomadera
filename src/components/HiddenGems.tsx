@@ -25,14 +25,17 @@ export default function HiddenGems({
   }, [personal.length]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {personal.length > 0 && (
-        <p className="mx-auto max-w-md rounded-md bg-amber-100 px-3 py-2 text-center text-sm font-semibold text-amber-900">
+        <p
+          key={`p${p}`}
+          className="mx-auto max-w-md rounded-2xl bg-ink px-4 py-2.5 text-center text-sm font-medium text-white animate-[fadein_0.6s_ease]"
+        >
           ✨ {personal[p]}
         </p>
       )}
       {gems.length > 0 && (
-        <p key={i} className="text-center text-xs text-slate-400 animate-[fadein_0.6s_ease]">
+        <p key={i} className="text-center text-xs text-subtle animate-[fadein_0.6s_ease]">
           💎 {gems[i]}
         </p>
       )}

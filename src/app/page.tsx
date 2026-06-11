@@ -16,57 +16,58 @@ export default async function HomePage() {
     ]);
 
   const allMatches = (matches ?? []) as Match[];
-  const leaderboard = buildLeaderboard(
-    players ?? [],
-    allMatches,
-    predictions ?? []
-  );
+  const leaderboard = buildLeaderboard(players ?? [], allMatches, predictions ?? []);
   const finishedCount = allMatches.filter((m) => m.finished).length;
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-lg bg-gradient-to-br from-pitch-900 to-pitch-700 p-6 text-white">
-        <h1 className="text-2xl font-extrabold">🏆 Ranking de la porra</h1>
-        <p className="mt-1 text-sm text-white/80">
+    <div className="space-y-12">
+      {/* Hero */}
+      <section className="pt-2 text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-subtle">
+          Mundial 2026
+        </p>
+        <h1 className="mt-3 text-5xl font-semibold tracking-tight text-ink sm:text-6xl">
+          Porra pomadera
+        </h1>
+        <p className="mt-3 text-lg text-subtle">by JARS Crisol</p>
+        <p className="mx-auto mt-4 max-w-md text-[15px] text-subtle">
           {players?.length ?? 0} jugadores · {finishedCount} partidos jugados
         </p>
         {!player && (
-          <div className="mt-4 flex gap-2">
-            <Link
-              href="/register"
-              className="rounded bg-white px-4 py-2 text-sm font-semibold text-pitch-900 hover:bg-white/90"
-            >
+          <div className="mt-7 flex justify-center gap-3">
+            <Link href="/register" className="btn-primary px-6 py-2.5">
               Unirme a la porra
             </Link>
-            <Link
-              href="/login"
-              className="rounded bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25"
-            >
+            <Link href="/login" className="btn-ghost px-6 py-2.5">
               Ya tengo usuario
             </Link>
           </div>
         )}
       </section>
 
+      {/* Ranking */}
       <section>
+        <h2 className="mb-4 px-1 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Clasificación
+        </h2>
         {leaderboard.length === 0 ? (
-          <p className="rounded border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            Aún no hay jugadores. ¡Sé el primero en{" "}
-            <Link href="/register" className="font-medium text-pitch-700 underline">
+          <div className="card p-10 text-center text-[15px] text-subtle">
+            Aún no hay jugadores. Sé el primero en{" "}
+            <Link href="/register" className="font-medium text-accent hover:underline">
               unirte
             </Link>
-            !
-          </p>
+            .
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left text-slate-600">
-                <tr>
-                  <th className="px-4 py-2 w-10">#</th>
-                  <th className="px-4 py-2">Jugador</th>
-                  <th className="px-4 py-2 text-center">Exactos</th>
-                  <th className="px-4 py-2 text-center">Ganadores</th>
-                  <th className="px-4 py-2 text-right">Puntos</th>
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-subtle">
+                  <th className="w-12 px-5 py-3 font-medium">#</th>
+                  <th className="px-2 py-3 font-medium">Jugador</th>
+                  <th className="px-3 py-3 text-center font-medium">Exactos</th>
+                  <th className="px-3 py-3 text-center font-medium">Aciertos</th>
+                  <th className="px-5 py-3 text-right font-medium">Puntos</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,18 +77,16 @@ export default async function HomePage() {
                   return (
                     <tr
                       key={row.playerId}
-                      className={`border-t border-slate-100 ${
-                        isMe ? "bg-pitch-500/10 font-semibold" : ""
-                      }`}
+                      className={`border-t border-hair ${isMe ? "bg-accent/[0.05]" : ""}`}
                     >
-                      <td className="px-4 py-2">{medal ?? i + 1}</td>
-                      <td className="px-4 py-2">
+                      <td className="px-5 py-3 text-subtle">{medal ?? i + 1}</td>
+                      <td className="px-2 py-3 font-medium text-ink">
                         {row.name}
-                        {isMe && <span className="ml-1 text-xs text-pitch-700">(tú)</span>}
+                        {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
                       </td>
-                      <td className="px-4 py-2 text-center text-slate-500">{row.exact}</td>
-                      <td className="px-4 py-2 text-center text-slate-500">{row.outcomes}</td>
-                      <td className="px-4 py-2 text-right text-lg font-bold text-pitch-900">
+                      <td className="px-3 py-3 text-center text-subtle tnum">{row.exact}</td>
+                      <td className="px-3 py-3 text-center text-subtle tnum">{row.outcomes}</td>
+                      <td className="px-5 py-3 text-right text-lg font-semibold text-ink tnum">
                         {row.points}
                       </td>
                     </tr>
@@ -99,19 +98,22 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
-        <h2 className="mb-2 font-semibold text-slate-800">¿Cómo se puntúa?</h2>
-        <ul className="space-y-1">
+      {/* Reglas */}
+      <section className="card p-6 text-[15px] text-subtle">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink">
+          Puntuación
+        </h2>
+        <ul className="space-y-1.5">
           <li>
-            🎯 <strong>{POINTS.EXACT} puntos</strong> si aciertas el resultado exacto.
+            <span className="font-medium text-ink">{POINTS.EXACT} pts</span> · resultado exacto.
           </li>
           <li>
-            ✅ <strong>{POINTS.OUTCOME} puntos</strong> si aciertas quién gana (o empate) pero no
-            el resultado exacto.
+            <span className="font-medium text-ink">{POINTS.OUTCOME} pts</span> · acertar
+            ganador o empate.
           </li>
           <li>
-            🔝 <strong>+{POINTS.ADVANCE} puntos</strong> en eliminatorias si aciertas qué
-            selección clasifica.
+            <span className="font-medium text-ink">+{POINTS.ADVANCE} pts</span> · en
+            eliminatorias, acertar quién clasifica.
           </li>
         </ul>
       </section>

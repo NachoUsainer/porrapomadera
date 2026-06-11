@@ -1,4 +1,4 @@
-# ⚽ Porra del Mundial
+# ⚽ Porra pomadera · by JARS Crisol
 
 Web app para que tu grupo de amigos juegue la porra del Mundial: cada uno predice
 los resultados de los partidos, se reparten puntos por acierto y hay un **ranking**

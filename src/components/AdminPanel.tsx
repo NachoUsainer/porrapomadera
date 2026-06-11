@@ -11,6 +11,7 @@ import {
   adminSetMatchTeams,
 } from "@/lib/actions";
 import { STAGE_LABELS, type Team, type Match } from "@/lib/supabase";
+import { flagFor } from "@/lib/flags";
 
 const STAGES = ["group", "r32", "r16", "qf", "sf", "third", "final"];
 
@@ -40,9 +41,9 @@ export default function AdminPanel({
       <AddMatch teams={teams} />
 
       <section>
-        <h2 className="mb-3 text-lg font-bold">Partidos ({matches.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink">Partidos ({matches.length})</h2>
         {matches.length === 0 ? (
-          <p className="text-sm text-slate-500">Aún no hay partidos.</p>
+          <p className="text-sm text-subtle">Aún no hay partidos.</p>
         ) : (
           <div className="space-y-2">
             {matches.map((m) => (
@@ -63,17 +64,17 @@ function Players({ players }: { players: PlayerRow[] }) {
   players.forEach((p) => counts.set(firstToken(p.name), (counts.get(firstToken(p.name)) ?? 0) + 1));
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-1 text-lg font-bold">Jugadores ({players.length})</h2>
-      <p className="mb-3 text-xs text-slate-500">
+    <section className="card p-5">
+      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">Jugadores ({players.length})</h2>
+      <p className="mb-3 text-xs text-subtle">
         Expulsa a usuarios que creas duplicados. Al expulsar se borran también sus
         predicciones. ⚠️ No tiene vuelta atrás.
       </p>
       {players.length === 0 ? (
-        <p className="text-sm text-slate-500">Aún no hay jugadores registrados.</p>
+        <p className="text-sm text-subtle">Aún no hay jugadores registrados.</p>
       ) : (
         <table className="w-full text-sm">
-          <thead className="text-left text-xs text-slate-500">
+          <thead className="text-left text-xs text-subtle">
             <tr>
               <th className="py-1">Nombre</th>
               <th className="py-1">Alta</th>
@@ -85,7 +86,7 @@ function Players({ players }: { players: PlayerRow[] }) {
             {players.map((p) => {
               const dup = (counts.get(firstToken(p.name)) ?? 0) > 1;
               return (
-                <tr key={p.id} className="border-t border-slate-100">
+                <tr key={p.id} className="border-t border-hair">
                   <td className="py-1.5 font-medium">
                     {p.name}
                     {dup && (
@@ -94,7 +95,7 @@ function Players({ players }: { players: PlayerRow[] }) {
                       </span>
                     )}
                   </td>
-                  <td className="py-1.5 text-slate-500">
+                  <td className="py-1.5 text-subtle">
                     {new Date(p.createdAt).toLocaleDateString("es-ES", {
                       day: "numeric",
                       month: "short",
@@ -102,7 +103,7 @@ function Players({ players }: { players: PlayerRow[] }) {
                       minute: "2-digit",
                     })}
                   </td>
-                  <td className="py-1.5 text-center text-slate-500">{p.predictions}</td>
+                  <td className="py-1.5 text-center text-subtle">{p.predictions}</td>
                   <td className="py-1.5 text-right">
                     <ExpelButton id={p.id} name={p.name} />
                   </td>
@@ -137,8 +138,8 @@ function ExpelButton({ id, name }: { id: string; name: string }) {
 function AddTeam({ teams }: { teams: Team[] }) {
   const [state, action, pending] = useActionState(adminAddTeam, {});
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-3 text-lg font-bold">Añadir selección</h2>
+    <section className="card p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink">Añadir selección</h2>
       <form action={action} className="flex flex-wrap items-end gap-2">
         <Field label="Nombre">
           <input name="name" required placeholder="España" className="input" />
@@ -154,7 +155,7 @@ function AddTeam({ teams }: { teams: Team[] }) {
         </button>
       </form>
       {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-subtle">
         {teams.length} selecciones cargadas.
       </p>
     </section>
@@ -165,8 +166,8 @@ function AddMatch({ teams }: { teams: Team[] }) {
   const [state, action, pending] = useActionState(adminAddMatch, {});
   const sorted = [...teams].sort((a, b) => a.name.localeCompare(b.name));
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-3 text-lg font-bold">Añadir partido</h2>
+    <section className="card p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink">Añadir partido</h2>
       <form action={action} className="flex flex-wrap items-end gap-2">
         <Field label="Fase">
           <select name="stage" className="input">
@@ -214,8 +215,8 @@ function ResultRow({
   const teamsMissing = !match.home_team_id || !match.away_team_id;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
-      <div className="mb-2 text-xs text-slate-500">
+    <div className="card p-4">
+      <div className="mb-2 text-xs text-subtle">
         {STAGE_LABELS[match.stage]} {match.label ? `· ${match.label}` : ""}
         {match.finished && (
           <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-green-700">
@@ -228,7 +229,7 @@ function ResultRow({
       <form action={action} className="flex flex-wrap items-center gap-2 text-sm">
         <input type="hidden" name="match_id" value={match.id} />
         <span className="min-w-[7rem] text-right font-medium">
-          {home?.name ?? "?"}
+          {home ? `${flagFor(home.name)} ${home.name}` : "?"}
         </span>
         <input
           type="number"
@@ -245,10 +246,12 @@ function ResultRow({
           defaultValue={match.away_score ?? ""}
           className="input w-14 text-center"
         />
-        <span className="min-w-[7rem] font-medium">{away?.name ?? "?"}</span>
+        <span className="min-w-[7rem] font-medium">
+          {away ? `${flagFor(away.name)} ${away.name}` : "?"}
+        </span>
 
         {isKnockout && (
-          <label className="flex items-center gap-1 text-xs text-slate-600">
+          <label className="flex items-center gap-1 text-xs text-subtle">
             Clasifica:
             <select
               name="advance_team_id"
@@ -256,8 +259,8 @@ function ResultRow({
               className="input"
             >
               <option value="">—</option>
-              {home && <option value={home.id}>{home.name}</option>}
-              {away && <option value={away.id}>{away.name}</option>}
+              {home && <option value={home.id}>{flagFor(home.name)} {home.name}</option>}
+              {away && <option value={away.id}>{flagFor(away.name)} {away.name}</option>}
             </select>
           </label>
         )}
@@ -291,15 +294,15 @@ function SetTeams({ match, teams }: { match: Match; teams: Team[] }) {
   return (
     <form
       action={action}
-      className="mb-2 flex flex-wrap items-center gap-2 rounded bg-slate-50 p-2 text-xs"
+      className="mb-2 flex flex-wrap items-center gap-2 rounded-xl bg-black/[0.03] p-2 text-xs"
     >
       <input type="hidden" name="match_id" value={match.id} />
-      <span className="text-slate-500">Asignar cruce:</span>
+      <span className="text-subtle">Asignar cruce:</span>
       <select name="home_team_id" defaultValue={match.home_team_id ?? ""} className="input">
         <option value="">— local —</option>
         {sorted.map((t) => (
           <option key={t.id} value={t.id}>
-            {t.name}
+            {flagFor(t.name)} {t.name}
           </option>
         ))}
       </select>
@@ -308,11 +311,11 @@ function SetTeams({ match, teams }: { match: Match; teams: Team[] }) {
         <option value="">— visitante —</option>
         {sorted.map((t) => (
           <option key={t.id} value={t.id}>
-            {t.name}
+            {flagFor(t.name)} {t.name}
           </option>
         ))}
       </select>
-      <button disabled={pending} className="rounded border border-slate-300 px-2 py-1 hover:bg-white">
+      <button disabled={pending} className="btn-ghost px-3 py-1">
         {pending ? "..." : "Fijar equipos"}
       </button>
       {state.error && <span className="text-red-600">{state.error}</span>}
@@ -331,9 +334,9 @@ r16 ;  ;  ; 2026-06-29 18:00 ; Octavos 1 (1A-2B)`;
 function BulkImport() {
   const [state, action, pending] = useActionState(adminBulkImport, {});
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-1 text-lg font-bold">Importar calendario</h2>
-      <p className="mb-3 text-xs text-slate-500">
+    <section className="card p-5">
+      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">Importar calendario</h2>
+      <p className="mb-3 text-xs text-subtle">
         Pega el calendario, un partido por línea, separado por <code>;</code> →{" "}
         <code>fase ; local ; visitante ; AAAA-MM-DD HH:MM ; etiqueta</code>. Las
         selecciones se crean solas. Las horas se interpretan en hora CET/CEST. Esto{" "}
@@ -344,7 +347,7 @@ function BulkImport() {
           name="data"
           rows={10}
           placeholder={IMPORT_PLACEHOLDER}
-          className="w-full rounded border border-slate-300 p-2 font-mono text-xs"
+          className="input w-full p-2 font-mono text-xs"
         />
         <div className="flex items-center gap-3">
           <button disabled={pending} className="btn-primary">
@@ -364,7 +367,7 @@ function BulkImport() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-slate-600">
+    <label className="flex flex-col gap-1 text-xs text-subtle">
       {label}
       {children}
     </label>
@@ -377,7 +380,7 @@ function TeamSelect({ name, teams }: { name: string; teams: Team[] }) {
       <option value="">—</option>
       {teams.map((t) => (
         <option key={t.id} value={t.id}>
-          {t.name}
+          {flagFor(t.name)} {t.name}
           {t.group_name ? ` (${t.group_name})` : ""}
         </option>
       ))}
