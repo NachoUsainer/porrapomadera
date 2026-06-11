@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer components {
+  .input {
+    @apply rounded border border-slate-300 px-2 py-1 text-sm;
+  }
+  .btn-primary {
+    @apply rounded bg-pitch-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-pitch-900 disabled:opacity-50;
+  }
+}
