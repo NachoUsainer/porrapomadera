@@ -145,7 +145,7 @@ function MatchCard({ m }: { m: MatchRow }) {
 
       {m.isKnockout && !m.pendingTeams && (
         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-subtle">
-          <span>Clasifica</span>
+          <span>Si hay empate, ¿quién pasa?</span>
           <select
             name={`advance_${m.id}`}
             defaultValue={m.predAdvance ?? ""}

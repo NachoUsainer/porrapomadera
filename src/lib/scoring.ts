@@ -6,7 +6,7 @@ import type { Match, Prediction } from "./supabase";
 export const POINTS = {
   EXACT: 5, // acertar el resultado exacto (ej: 2-1 y fue 2-1)
   OUTCOME: 3, // acertar el ganador / empate (1-X-2) pero no el resultado exacto
-  ADVANCE: 2, // (eliminatorias) acertar qué selección clasifica
+  ADVANCE: 2, // (eliminatorias) predecir empate en 90' y acertar quién pasa (prórroga/penaltis)
   GROUP_WINNER: 3, // acertar el campeón de un grupo
   TOP_SCORER: 8, // acertar el máximo goleador del torneo
 };
@@ -46,8 +46,14 @@ export function scorePrediction(match: Match, pred: Prediction): number {
     pts += POINTS.OUTCOME;
   }
 
-  // Bonus de eliminatoria: acertar quién clasifica
+  // Bonus de eliminatoria: SOLO si el partido acabó en empate en los 90'
+  // y el jugador predijo empate y acertó quién pasa (prórroga/penaltis).
+  // Si predijo un ganador claro y acertó, ya cobró por el resultado (sin +2 redundante).
+  const realDraw = match.home_score === match.away_score;
+  const predDraw = pred.home_score === pred.away_score;
   if (
+    realDraw &&
+    predDraw &&
     match.advance_team_id != null &&
     pred.advance_team_id != null &&
     pred.advance_team_id === match.advance_team_id

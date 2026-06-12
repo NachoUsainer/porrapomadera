@@ -132,7 +132,7 @@ export default async function HomePage() {
           </li>
           <li>
             <span className="font-medium text-ink">+{POINTS.ADVANCE} pts</span> · en
-            eliminatorias, acertar quién clasifica.
+            eliminatorias, predecir empate y acertar quién pasa (prórroga/penaltis).
           </li>
           <li>
             <span className="font-medium text-ink">+{POINTS.GROUP_WINNER} pts</span> · acertar
