@@ -101,6 +101,7 @@ function Players({ players }: { players: PlayerRow[] }) {
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "Europe/Madrid",
                     })}
                   </td>
                   <td className="py-1.5 text-center text-subtle">{p.predictions}</td>
