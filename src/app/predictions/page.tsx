@@ -4,11 +4,13 @@ import { getCurrentPlayer } from "@/lib/session";
 import { scorePrediction } from "@/lib/scoring";
 import { isMatchLocked } from "@/lib/lock";
 import { getSpecialLockInfo, isGroupLocked, isScorerLocked } from "@/lib/special";
+import { getStandings } from "@/lib/standings";
 import PredictionsForm, { type MatchRow } from "@/components/PredictionsForm";
 import SpecialPredictions, {
   type GroupItem,
   type ScorerItem,
 } from "@/components/SpecialPredictions";
+import SpecialBets, { type BetItem, type BetsSummary } from "@/components/SpecialBets";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +120,30 @@ export default async function PredictionsPage() {
     real: settings?.value ?? null,
   };
 
+  // ---- Apuestas especiales ----
+  const standings = await getStandings();
+  const myTotal = standings.total.get(player.id) ?? 0;
+  const myReserved = standings.reserved.get(player.id) ?? 0;
+  const betItems: BetItem[] = [...standings.bets]
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+    .map((b) => {
+      const w = standings.wagerOf(player.id, b.id);
+      const status = b.outcome != null ? "resolved" : b.is_open ? "open" : "closed";
+      return {
+        id: b.id,
+        question: b.question,
+        status: status as BetItem["status"],
+        outcome: b.outcome,
+        myStake: w ? w.stake : null,
+        available: standings.availableFor(player.id, b.id),
+      };
+    });
+  const betsSummary: BetsSummary = {
+    total: myTotal,
+    reserved: myReserved,
+    available: Math.max(0, myTotal - myReserved),
+  };
+
   return (
     <div className="space-y-12">
       <div className="text-center">
@@ -126,6 +152,8 @@ export default async function PredictionsPage() {
           Resultados, campeones de grupo y goleador. Cada partido se cierra al empezar.
         </p>
       </div>
+
+      <SpecialBets bets={betItems} summary={betsSummary} />
 
       <SpecialPredictions groups={groupItems} scorer={scorerItem} />
 

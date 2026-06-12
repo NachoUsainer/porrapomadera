@@ -1,40 +1,13 @@
 import Link from "next/link";
-import { supabase, type Match } from "@/lib/supabase";
-import { buildLeaderboard, bonusByPlayer, POINTS } from "@/lib/scoring";
+import { POINTS } from "@/lib/scoring";
+import { getStandings } from "@/lib/standings";
 import { getCurrentPlayer } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const player = await getCurrentPlayer();
-
-  const [
-    { data: players },
-    { data: matches },
-    { data: predictions },
-    { data: gwPreds },
-    { data: gResults },
-    { data: scorerPreds },
-    { data: settings },
-  ] = await Promise.all([
-    supabase.from("players").select("id, name"),
-    supabase.from("matches").select("*"),
-    supabase.from("predictions").select("*"),
-    supabase.from("group_winner_predictions").select("player_id, group_name, team_id"),
-    supabase.from("group_results").select("group_name, winner_team_id"),
-    supabase.from("scorer_predictions").select("player_id, player_name"),
-    supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
-  ]);
-
-  const allMatches = (matches ?? []) as Match[];
-  const bonus = bonusByPlayer(
-    gwPreds ?? [],
-    gResults ?? [],
-    scorerPreds ?? [],
-    settings?.value ?? null
-  );
-  const leaderboard = buildLeaderboard(players ?? [], allMatches, predictions ?? [], bonus);
-  const finishedCount = allMatches.filter((m) => m.finished).length;
+  const { leaderboard, playerCount, finishedCount } = await getStandings();
 
   return (
     <div className="space-y-12">
@@ -48,7 +21,7 @@ export default async function HomePage() {
         </h1>
         <p className="mt-3 text-lg text-subtle">by JARS Crisol</p>
         <p className="mx-auto mt-4 max-w-md text-[15px] text-subtle">
-          {players?.length ?? 0} jugadores · {finishedCount} partidos jugados
+          {playerCount} jugadores · {finishedCount} partidos jugados
         </p>
         {!player && (
           <div className="mt-7 flex justify-center gap-3">
@@ -82,8 +55,9 @@ export default async function HomePage() {
                 <tr className="text-left text-xs uppercase tracking-wide text-subtle">
                   <th className="w-12 px-5 py-3 font-medium">#</th>
                   <th className="px-2 py-3 font-medium">Jugador</th>
-                  <th className="px-3 py-3 text-center font-medium">Exactos</th>
+                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Exactos</th>
                   <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Esp.</th>
+                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">🎰</th>
                   <th className="px-5 py-3 text-right font-medium">Puntos</th>
                 </tr>
               </thead>
@@ -101,9 +75,20 @@ export default async function HomePage() {
                         {row.name}
                         {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
                       </td>
-                      <td className="px-3 py-3 text-center text-subtle tnum">{row.exact}</td>
+                      <td className="hidden px-3 py-3 text-center text-subtle tnum sm:table-cell">
+                        {row.exact}
+                      </td>
                       <td className="hidden px-3 py-3 text-center text-subtle tnum sm:table-cell">
                         {row.bonus > 0 ? `+${row.bonus}` : "–"}
+                      </td>
+                      <td className="hidden px-3 py-3 text-center tnum sm:table-cell">
+                        {row.betNet === 0 ? (
+                          <span className="text-subtle">–</span>
+                        ) : (
+                          <span className={row.betNet > 0 ? "text-green-600" : "text-red-600"}>
+                            {row.betNet > 0 ? `+${row.betNet}` : row.betNet}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3 text-right text-lg font-semibold text-ink tnum">
                         {row.points}

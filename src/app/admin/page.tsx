@@ -1,8 +1,10 @@
 import { supabase, type Match, type Team } from "@/lib/supabase";
 import { isAdmin } from "@/lib/session";
+import { getStandings } from "@/lib/standings";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import AdminPanel from "@/components/AdminPanel";
 import AdminSpecials from "@/components/AdminSpecials";
+import AdminBets, { type AdminBet } from "@/components/AdminBets";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +50,32 @@ export default async function AdminPage() {
     return ka - kb || a.id - b.id;
   });
 
+  // Apuestas + estadísticas (nº de apuestas y puntos en juego por apuesta)
+  const standings = await getStandings();
+  const statByBet = new Map<string, { count: number; staked: number }>();
+  for (const w of standings.wagers) {
+    const s = statByBet.get(w.bet_id) ?? { count: 0, staked: 0 };
+    s.count += 1;
+    s.staked += w.stake;
+    statByBet.set(w.bet_id, s);
+  }
+  const adminBets: AdminBet[] = [...standings.bets]
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+    .map((b) => ({
+      id: b.id,
+      question: b.question,
+      is_open: b.is_open,
+      outcome: b.outcome,
+      wagerCount: statByBet.get(b.id)?.count ?? 0,
+      totalStaked: statByBet.get(b.id)?.staked ?? 0,
+    }));
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold">Administración</h1>
+      <div className="mb-10">
+        <AdminBets bets={adminBets} />
+      </div>
       <div className="mb-10">
         <AdminSpecials
           teams={(teams ?? []) as Team[]}

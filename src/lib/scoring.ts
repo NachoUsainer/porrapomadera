@@ -116,30 +116,34 @@ export type LeaderboardRow = {
   playerId: string;
   name: string;
   points: number;
-  bonus: number; // puntos de predicciones especiales
+  bonus: number; // puntos de predicciones especiales (grupo + goleador)
+  betNet: number; // saldo de apuestas resueltas (puede ser negativo)
   exact: number; // nº de resultados exactos acertados
   outcomes: number; // nº de ganadores acertados (sin exacto)
   played: number; // nº de partidos finalizados con predicción
 };
 
 // Construye el ranking a partir de jugadores, partidos y predicciones.
-// `bonus` (opcional) añade los puntos de predicciones especiales por jugador.
+// `bonus` añade los puntos de predicciones especiales; `betNet` el saldo de apuestas.
 export function buildLeaderboard(
   players: { id: string; name: string }[],
   matches: Match[],
   predictions: Prediction[],
-  bonus?: Map<string, Bonus>
+  bonus?: Map<string, Bonus>,
+  betNet?: Map<string, number>
 ): LeaderboardRow[] {
   const matchById = new Map(matches.map((m) => [m.id, m]));
   const rows = new Map<string, LeaderboardRow>();
 
   for (const p of players) {
     const b = bonus?.get(p.id)?.points ?? 0;
+    const bn = betNet?.get(p.id) ?? 0;
     rows.set(p.id, {
       playerId: p.id,
       name: p.name,
-      points: b, // arranca con los puntos especiales
+      points: b + bn, // arranca con especiales + saldo de apuestas
       bonus: b,
+      betNet: bn,
       exact: 0,
       outcomes: 0,
       played: 0,

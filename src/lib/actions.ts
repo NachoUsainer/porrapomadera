@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { supabase } from "./supabase";
 import { isMatchLocked } from "./lock";
 import { getSpecialLockInfo } from "./special";
+import { getStandings } from "./standings";
 import {
   hashPin,
   verifyPin,
@@ -208,6 +209,70 @@ export async function saveScorer(
   revalidatePath("/predictions");
   revalidatePath("/");
   return { saved: true };
+}
+
+// ============================================================
+//  APUESTAS ESPECIALES (binarias: apuestas a que SÍ ocurre)
+// ============================================================
+export async function placeWager(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const player = await getCurrentPlayer();
+  if (!player) return { error: "Tienes que iniciar sesión." };
+
+  const betId = String(formData.get("bet_id") ?? "");
+  const stake = Number(formData.get("stake"));
+  if (!betId) return { error: "Apuesta no válida." };
+  if (!Number.isInteger(stake) || stake < 1) {
+    return { error: "La apuesta debe ser de al menos 1 punto." };
+  }
+
+  const { data: bet } = await supabase
+    .from("special_bets")
+    .select("is_open, outcome")
+    .eq("id", betId)
+    .maybeSingle();
+  if (!bet) return { error: "Esa apuesta ya no existe." };
+  if (!bet.is_open || bet.outcome != null) {
+    return { error: "Esta apuesta ya está cerrada." };
+  }
+
+  const standings = await getStandings();
+  const available = standings.availableFor(player.id, betId);
+  if (available < 1) {
+    return { error: "No tienes puntos disponibles para apostar todavía." };
+  }
+  if (stake > available) {
+    return { error: `Solo puedes apostar hasta ${available} puntos.` };
+  }
+
+  const { error } = await supabase.from("bet_wagers").upsert(
+    { bet_id: betId, player_id: player.id, stake, updated_at: new Date().toISOString() },
+    { onConflict: "bet_id,player_id" }
+  );
+  if (error) return { error: "No se pudo registrar la apuesta." };
+
+  revalidatePath("/predictions");
+  revalidatePath("/");
+  return { saved: true };
+}
+
+export async function removeWager(formData: FormData) {
+  const player = await getCurrentPlayer();
+  if (!player) return;
+  const betId = String(formData.get("bet_id") ?? "");
+  if (!betId) return;
+  // Solo se puede retirar mientras la apuesta siga abierta.
+  const { data: bet } = await supabase
+    .from("special_bets")
+    .select("is_open, outcome")
+    .eq("id", betId)
+    .maybeSingle();
+  if (!bet || !bet.is_open || bet.outcome != null) return;
+  await supabase.from("bet_wagers").delete().eq("bet_id", betId).eq("player_id", player.id);
+  revalidatePath("/predictions");
+  revalidatePath("/");
 }
 
 // ============================================================
@@ -479,6 +544,63 @@ export async function adminSetTopScorer(
   revalidatePath("/admin");
   revalidatePath("/");
   return { saved: true };
+}
+
+// ---- Apuestas especiales (admin) ----
+export async function adminCreateBet(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+  const question = String(formData.get("question") ?? "").trim();
+  if (question.length < 4) return { error: "Escribe el enunciado de la apuesta." };
+  const { error } = await supabase.from("special_bets").insert({ question });
+  if (error) return { error: "No se pudo crear la apuesta." };
+  revalidatePath("/admin");
+  revalidatePath("/predictions");
+  return { saved: true };
+}
+
+// Abrir / cerrar la admisión de apuestas (solo si no está resuelta).
+export async function adminToggleBet(formData: FormData) {
+  await requireAdmin();
+  const betId = String(formData.get("bet_id") ?? "");
+  if (!betId) return;
+  const { data: bet } = await supabase
+    .from("special_bets")
+    .select("is_open, outcome")
+    .eq("id", betId)
+    .maybeSingle();
+  if (!bet || bet.outcome != null) return;
+  await supabase.from("special_bets").update({ is_open: !bet.is_open }).eq("id", betId);
+  revalidatePath("/admin");
+  revalidatePath("/predictions");
+  revalidatePath("/");
+}
+
+// Resolver: outcome 'yes' | 'no' | 'pending'. Cierra la admisión.
+export async function adminResolveBet(formData: FormData) {
+  await requireAdmin();
+  const betId = String(formData.get("bet_id") ?? "");
+  const result = String(formData.get("result") ?? "");
+  if (!betId) return;
+  const outcome = result === "yes" ? true : result === "no" ? false : null;
+  await supabase
+    .from("special_bets")
+    .update({ outcome, is_open: outcome == null })
+    .eq("id", betId);
+  revalidatePath("/admin");
+  revalidatePath("/predictions");
+  revalidatePath("/");
+}
+
+export async function adminDeleteBet(formData: FormData) {
+  await requireAdmin();
+  const betId = String(formData.get("bet_id") ?? "");
+  if (betId) await supabase.from("special_bets").delete().eq("id", betId);
+  revalidatePath("/admin");
+  revalidatePath("/predictions");
+  revalidatePath("/");
 }
 
 // Expulsar a un jugador (p.ej. duplicados). Borra también sus predicciones
