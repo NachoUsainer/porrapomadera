@@ -61,7 +61,7 @@ export default async function HomePage() {
                   <th className="px-3 py-3 text-center font-medium">Grupo</th>
                   <th className="px-3 py-3 text-center font-medium">Goleador</th>
                   <th className="px-3 py-3 text-center font-medium">Apuestas</th>
-                  <th className="sticky right-0 bg-white px-5 py-3 text-right font-medium shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.08)]">
+                  <th className="sticky right-0 bg-[#eaf1fb] px-5 py-3 text-right font-semibold text-accent shadow-[-6px_0_10px_-6px_rgba(0,0,0,0.12)]">
                     Puntos
                   </th>
                 </tr>
@@ -70,7 +70,7 @@ export default async function HomePage() {
                 {leaderboard.map((row, i) => {
                   const isMe = player?.id === row.playerId;
                   const medal = ["🥇", "🥈", "🥉"][i] ?? null;
-                  const stickyBg = isMe ? "bg-[#f1f6fd]" : "bg-white";
+                  const stickyBg = isMe ? "bg-[#dfeafb]" : "bg-[#f3f7fd]";
                   return (
                     <tr
                       key={row.playerId}
@@ -102,7 +102,7 @@ export default async function HomePage() {
                         )}
                       </td>
                       <td
-                        className={`sticky right-0 ${stickyBg} px-5 py-3 text-right text-lg font-semibold text-ink tnum shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.08)]`}
+                        className={`sticky right-0 ${stickyBg} px-5 py-3 text-right text-xl font-bold text-ink tnum shadow-[-6px_0_10px_-6px_rgba(0,0,0,0.12)]`}
                       >
                         {row.points}
                       </td>

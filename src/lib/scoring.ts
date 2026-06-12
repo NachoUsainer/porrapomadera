@@ -112,6 +112,29 @@ export function bonusByPlayer(
   return map;
 }
 
+// ---- Apuestas: cálculo puro de saldo, puntos en juego y stakes abiertos ----
+export type BetLike = { id: string; outcome: boolean | null };
+export type WagerLike = { bet_id: string; player_id: string; stake: number };
+
+export function computeBetEffects(bets: BetLike[], wagers: WagerLike[]) {
+  const betById = new Map(bets.map((b) => [b.id, b]));
+  const betNet = new Map<string, number>(); // saldo de apuestas RESUELTAS (±)
+  const reserved = new Map<string, number>(); // puntos en juego en apuestas ABIERTAS
+  const openStake = new Map<string, number>(); // `${player}:${bet}` -> stake (abiertas)
+  for (const w of wagers) {
+    const b = betById.get(w.bet_id);
+    if (!b) continue;
+    if (b.outcome === null || b.outcome === undefined) {
+      reserved.set(w.player_id, (reserved.get(w.player_id) ?? 0) + w.stake);
+      openStake.set(`${w.player_id}:${w.bet_id}`, w.stake);
+    } else {
+      const delta = b.outcome ? w.stake : -w.stake;
+      betNet.set(w.player_id, (betNet.get(w.player_id) ?? 0) + delta);
+    }
+  }
+  return { betNet, reserved, openStake };
+}
+
 export type LeaderboardRow = {
   playerId: string;
   name: string;

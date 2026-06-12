@@ -1,6 +1,11 @@
 import "server-only";
 import { supabase, type Match, type Prediction } from "./supabase";
-import { buildLeaderboard, bonusByPlayer, type LeaderboardRow } from "./scoring";
+import {
+  buildLeaderboard,
+  bonusByPlayer,
+  computeBetEffects,
+  type LeaderboardRow,
+} from "./scoring";
 
 export type Bet = {
   id: string;
@@ -50,7 +55,6 @@ export async function getStandings(): Promise<Standings> {
 
   const bets = (betsData ?? []) as Bet[];
   const wagers = (wagersData ?? []) as Wager[];
-  const betById = new Map(bets.map((b) => [b.id, b]));
 
   const bonus = bonusByPlayer(
     gwPreds ?? [],
@@ -60,20 +64,7 @@ export async function getStandings(): Promise<Standings> {
   );
 
   // Saldo de apuestas resueltas (+stake si salió SÍ, -stake si NO) y puntos en juego.
-  const betNet = new Map<string, number>();
-  const reserved = new Map<string, number>();
-  const openStakeByKey = new Map<string, number>(); // `${player}:${bet}` -> stake (solo abiertas)
-  for (const w of wagers) {
-    const bet = betById.get(w.bet_id);
-    if (!bet) continue;
-    if (bet.outcome === null || bet.outcome === undefined) {
-      reserved.set(w.player_id, (reserved.get(w.player_id) ?? 0) + w.stake);
-      openStakeByKey.set(`${w.player_id}:${w.bet_id}`, w.stake);
-    } else {
-      const delta = bet.outcome ? w.stake : -w.stake;
-      betNet.set(w.player_id, (betNet.get(w.player_id) ?? 0) + delta);
-    }
-  }
+  const { betNet, reserved, openStake: openStakeByKey } = computeBetEffects(bets, wagers);
 
   const leaderboard = buildLeaderboard(
     players ?? [],
