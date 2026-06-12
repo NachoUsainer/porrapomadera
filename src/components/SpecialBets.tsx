@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { placeWager, removeWager } from "@/lib/actions";
 
 export type BetItem = {
@@ -21,33 +21,59 @@ export default function SpecialBets({
   bets: BetItem[];
   summary: BetsSummary;
 }) {
+  const [open, setOpen] = useState(false);
+  const openBets = bets.filter((b) => b.status === "open").length;
+
   return (
     <section>
-      <h2 className="mb-1 px-1 text-sm font-semibold uppercase tracking-wide text-subtle">
-        Apuestas especiales 🎰
-      </h2>
-      <p className="mb-3 px-1 text-xs text-subtle">
-        Apuesta tus puntos a que el evento <span className="text-ink">SÍ ocurre</span>. Si
-        aciertas ganas lo apostado; si fallas, lo pierdes (doble o nada).
-      </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="card flex w-full items-center gap-3 p-4 text-left transition hover:bg-black/[0.015]"
+      >
+        <span className="text-xl">🎰</span>
+        <span className="flex-1">
+          <span className="block font-semibold text-ink">Apuestas especiales</span>
+          <span className="block text-xs text-subtle">Añádele pomada 🧴</span>
+        </span>
+        {openBets > 0 && !open && (
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+            {openBets} abierta{openBets > 1 ? "s" : ""}
+          </span>
+        )}
+        <span
+          className={`text-subtle transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        >
+          ▾
+        </span>
+      </button>
 
-      <div className="card mb-3 flex items-center justify-around p-3 text-center">
-        <Stat label="Tus puntos" value={summary.total} />
-        <div className="h-8 w-px bg-hair" />
-        <Stat label="En juego" value={summary.reserved} />
-        <div className="h-8 w-px bg-hair" />
-        <Stat label="Disponible" value={summary.available} accent />
-      </div>
+      {open && (
+        <div className="mt-3 animate-[fadein_0.3s_ease]">
+          <p className="mb-3 px-1 text-xs text-subtle">
+            Apuesta tus puntos a que el evento <span className="text-ink">SÍ ocurre</span>. Si
+            aciertas ganas lo apostado; si fallas, lo pierdes (doble o nada).
+          </p>
 
-      {bets.length === 0 ? (
-        <div className="card p-6 text-center text-sm text-subtle">
-          No hay apuestas abiertas ahora mismo. ¡Atento, que el admin las va metiendo! 👀
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {bets.map((b) => (
-            <BetCard key={b.id} bet={b} />
-          ))}
+          <div className="card mb-3 flex items-center justify-around p-3 text-center">
+            <Stat label="Tus puntos" value={summary.total} />
+            <div className="h-8 w-px bg-hair" />
+            <Stat label="En juego" value={summary.reserved} />
+            <div className="h-8 w-px bg-hair" />
+            <Stat label="Disponible" value={summary.available} accent />
+          </div>
+
+          {bets.length === 0 ? (
+            <div className="card p-6 text-center text-sm text-subtle">
+              No hay apuestas ahora mismo. ¡Atento, que el admin las va metiendo! 👀
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {bets.map((b) => (
+                <BetCard key={b.id} bet={b} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
