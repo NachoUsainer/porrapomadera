@@ -12,6 +12,7 @@ export type Bet = {
   question: string;
   is_open: boolean;
   outcome: boolean | null; // null = sin resolver
+  closes_at: string | null; // si está, cierra sola a esa hora
   created_at: string;
 };
 export type Wager = { id: string; bet_id: string; player_id: string; stake: number };

@@ -8,9 +8,22 @@ export type BetItem = {
   question: string;
   status: "open" | "closed" | "resolved";
   outcome: boolean | null;
+  closesAt: string | null;
   myStake: number | null;
   available: number; // puntos que puedes apostar en esta apuesta
 };
+
+function closeLabel(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("es-ES", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Madrid",
+  });
+}
 
 export type BetsSummary = { total: number; reserved: number; available: number };
 
@@ -132,6 +145,12 @@ function BetCard({ bet }: { bet: BetItem }) {
               Puedes apostar hasta <span className="text-ink tnum">{bet.available}</span> pts
             </span>
           </form>
+
+          {bet.closesAt && (
+            <p className="mt-1.5 text-xs text-amber-700">
+              ⏱️ Se cierra el {closeLabel(bet.closesAt)}
+            </p>
+          )}
 
           {bet.myStake != null && (
             <form action={removeWager} className="mt-1">

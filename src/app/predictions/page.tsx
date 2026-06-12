@@ -128,12 +128,15 @@ export default async function PredictionsPage() {
     .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
     .map((b) => {
       const w = standings.wagerOf(player.id, b.id);
-      const status = b.outcome != null ? "resolved" : b.is_open ? "open" : "closed";
+      const autoClosed = b.closes_at != null && new Date(b.closes_at).getTime() <= now;
+      const status =
+        b.outcome != null ? "resolved" : b.is_open && !autoClosed ? "open" : "closed";
       return {
         id: b.id,
         question: b.question,
         status: status as BetItem["status"],
         outcome: b.outcome,
+        closesAt: b.closes_at,
         myStake: w ? w.stake : null,
         available: standings.availableFor(player.id, b.id),
       };

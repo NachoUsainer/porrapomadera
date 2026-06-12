@@ -1,10 +1,11 @@
 import { supabase, type Match, type Team } from "@/lib/supabase";
 import { isAdmin } from "@/lib/session";
 import { getStandings } from "@/lib/standings";
+import { flagFor } from "@/lib/flags";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import AdminPanel from "@/components/AdminPanel";
 import AdminSpecials from "@/components/AdminSpecials";
-import AdminBets, { type AdminBet } from "@/components/AdminBets";
+import AdminBets, { type AdminBet, type MatchOption } from "@/components/AdminBets";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function AdminPage() {
     s.staked += w.stake;
     statByBet.set(w.bet_id, s);
   }
+  const now = Date.now();
   const adminBets: AdminBet[] = [...standings.bets]
     .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
     .map((b) => ({
@@ -66,15 +68,35 @@ export default async function AdminPage() {
       question: b.question,
       is_open: b.is_open,
       outcome: b.outcome,
+      closesAt: b.closes_at,
+      autoClosed: b.closes_at != null && new Date(b.closes_at).getTime() <= now,
       wagerCount: statByBet.get(b.id)?.count ?? 0,
       totalStaked: statByBet.get(b.id)?.staked ?? 0,
     }));
+
+  // Partidos elegibles para cierre automático (con equipos y aún sin empezar)
+  const teamName = (id: number | null) =>
+    id ? (teams ?? []).find((t) => t.id === id)?.name ?? "?" : "?";
+  const matchOptions: MatchOption[] = sortedMatches
+    .filter((m) => !m.finished && m.kickoff && m.home_team_id && m.away_team_id)
+    .map((m) => {
+      const h = teamName(m.home_team_id);
+      const a = teamName(m.away_team_id);
+      const when = new Date(m.kickoff as string).toLocaleString("es-ES", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Madrid",
+      });
+      return { id: m.id, label: `${flagFor(h)} ${h} – ${flagFor(a)} ${a} · ${when}` };
+    });
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold">Administración</h1>
       <div className="mb-10">
-        <AdminBets bets={adminBets} />
+        <AdminBets bets={adminBets} matchOptions={matchOptions} />
       </div>
       <div className="mb-10">
         <AdminSpecials

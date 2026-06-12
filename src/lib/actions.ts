@@ -239,12 +239,16 @@ export async function placeWager(
 
   const { data: bet } = await supabase
     .from("special_bets")
-    .select("is_open, outcome")
+    .select("is_open, outcome, closes_at")
     .eq("id", betId)
     .maybeSingle();
   if (!bet) return { error: "Esa apuesta ya no existe." };
   if (!bet.is_open || bet.outcome != null) {
     return { error: "Esta apuesta ya está cerrada." };
+  }
+  // Cierre automático por hora (p.ej. inicio del partido).
+  if (bet.closes_at && new Date(bet.closes_at).getTime() <= Date.now()) {
+    return { error: "Esta apuesta ya se ha cerrado (empezó el partido)." };
   }
 
   const standings = await getStandings();
@@ -563,7 +567,20 @@ export async function adminCreateBet(
   await requireAdmin();
   const question = String(formData.get("question") ?? "").trim();
   if (question.length < 4) return { error: "Escribe el enunciado de la apuesta." };
-  const { error } = await supabase.from("special_bets").insert({ question });
+
+  // Cierre automático: si se elige un partido, la apuesta cierra a su inicio.
+  let closes_at: string | null = null;
+  const matchId = Number(formData.get("match_id"));
+  if (matchId) {
+    const { data: m } = await supabase
+      .from("matches")
+      .select("kickoff")
+      .eq("id", matchId)
+      .maybeSingle();
+    if (m?.kickoff) closes_at = m.kickoff;
+  }
+
+  const { error } = await supabase.from("special_bets").insert({ question, closes_at });
   if (error) return { error: "No se pudo crear la apuesta." };
   revalidatePath("/admin");
   revalidatePath("/predictions");
