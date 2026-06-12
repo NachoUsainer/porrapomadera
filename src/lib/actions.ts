@@ -7,6 +7,7 @@ import { isMatchLocked } from "./lock";
 import { getSpecialLockInfo } from "./special";
 import { getStandings } from "./standings";
 import { persistSeenState } from "./notifications";
+import { MAX_WAGER } from "./scoring";
 import {
   hashPin,
   verifyPin,
@@ -235,6 +236,9 @@ export async function placeWager(
   if (!betId) return { error: "Apuesta no válida." };
   if (!Number.isInteger(stake) || stake < 1) {
     return { error: "La apuesta debe ser de al menos 1 punto." };
+  }
+  if (stake > MAX_WAGER) {
+    return { error: `Máximo ${MAX_WAGER} puntos por apuesta.` };
   }
 
   const { data: bet } = await supabase

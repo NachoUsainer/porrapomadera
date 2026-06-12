@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { placeWager, removeWager } from "@/lib/actions";
+import { MAX_WAGER } from "@/lib/scoring";
 
 export type BetItem = {
   id: string;
@@ -64,7 +65,8 @@ export default function SpecialBets({
         <div className="mt-3 animate-[fadein_0.3s_ease]">
           <p className="mb-3 px-1 text-xs text-subtle">
             Apuesta tus puntos a que el evento <span className="text-ink">SÍ ocurre</span>. Si
-            aciertas ganas lo apostado; si fallas, lo pierdes (doble o nada).
+            aciertas ganas lo apostado; si fallas, lo pierdes (doble o nada). Máximo{" "}
+            <span className="text-ink">{MAX_WAGER} pts</span> por apuesta.
           </p>
 
           <div className="card mb-3 flex items-center justify-around p-3 text-center">
@@ -123,28 +125,34 @@ function BetCard({ bet }: { bet: BetItem }) {
       ) : (
         // open
         <div>
-          <form action={action} className="flex flex-wrap items-center gap-2">
-            <input type="hidden" name="bet_id" value={bet.id} />
-            <input
-              type="number"
-              name="stake"
-              min={1}
-              max={bet.available}
-              defaultValue={bet.myStake ?? ""}
-              placeholder="puntos"
-              disabled={bet.available < 1 && !bet.myStake}
-              className="input w-24 tnum"
-            />
-            <button
-              disabled={pending || (bet.available < 1 && !bet.myStake)}
-              className="btn-primary"
-            >
-              {pending ? "…" : bet.myStake ? "Cambiar" : "Apostar"}
-            </button>
-            <span className="text-xs text-subtle">
-              Puedes apostar hasta <span className="text-ink tnum">{bet.available}</span> pts
-            </span>
-          </form>
+          {(() => {
+            const cap = Math.min(bet.available, MAX_WAGER);
+            return (
+              <form action={action} className="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="bet_id" value={bet.id} />
+                <input
+                  type="number"
+                  name="stake"
+                  min={1}
+                  max={cap}
+                  defaultValue={bet.myStake ?? ""}
+                  placeholder="puntos"
+                  disabled={cap < 1 && !bet.myStake}
+                  className="input w-24 tnum"
+                />
+                <button
+                  disabled={pending || (cap < 1 && !bet.myStake)}
+                  className="btn-primary"
+                >
+                  {pending ? "…" : bet.myStake ? "Cambiar" : "Apostar"}
+                </button>
+                <span className="text-xs text-subtle">
+                  Hasta <span className="text-ink tnum">{cap}</span> pts
+                  {bet.available > MAX_WAGER && ` (máx. ${MAX_WAGER} por apuesta)`}
+                </span>
+              </form>
+            );
+          })()}
 
           {bet.closesAt && (
             <p className="mt-1.5 text-xs text-amber-700">

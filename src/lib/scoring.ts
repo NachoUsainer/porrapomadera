@@ -11,6 +11,9 @@ export const POINTS = {
   TOP_SCORER: 8, // acertar el máximo goleador del torneo
 };
 
+// Tope de puntos que se pueden jugar en UNA apuesta especial (aunque tengas más).
+export const MAX_WAGER = 12;
+
 // Normaliza texto para comparar nombres de goleador (sin acentos ni mayúsculas).
 export function normalizeText(s: string): string {
   return s
