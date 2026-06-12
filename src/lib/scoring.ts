@@ -119,7 +119,10 @@ export type LeaderboardRow = {
   bonus: number; // puntos de predicciones especiales (grupo + goleador)
   betNet: number; // saldo de apuestas resueltas (puede ser negativo)
   exact: number; // nº de resultados exactos acertados
-  outcomes: number; // nº de ganadores acertados (sin exacto)
+  outcomes: number; // nº de ganadores/empates acertados (sin exacto)
+  advanceHits: number; // nº de bonus de eliminatoria acertados (+2)
+  groupHits: number; // nº de campeones de grupo acertados (+3)
+  scorerHit: boolean; // acertó el máximo goleador (+8)
   played: number; // nº de partidos finalizados con predicción
 };
 
@@ -136,7 +139,8 @@ export function buildLeaderboard(
   const rows = new Map<string, LeaderboardRow>();
 
   for (const p of players) {
-    const b = bonus?.get(p.id)?.points ?? 0;
+    const bObj = bonus?.get(p.id);
+    const b = bObj?.points ?? 0;
     const bn = betNet?.get(p.id) ?? 0;
     rows.set(p.id, {
       playerId: p.id,
@@ -146,6 +150,9 @@ export function buildLeaderboard(
       betNet: bn,
       exact: 0,
       outcomes: 0,
+      advanceHits: 0,
+      groupHits: bObj?.groupHits ?? 0,
+      scorerHit: bObj?.scorerHit ?? false,
       played: 0,
     });
   }
@@ -165,6 +172,16 @@ export function buildLeaderboard(
       const ro = outcome(match.home_score, match.away_score);
       const po = outcome(pred.home_score, pred.away_score);
       if (ro === po) row.outcomes += 1;
+    }
+    // Bonus de eliminatoria acertado (empate predicho + quién pasa)
+    if (
+      match.home_score === match.away_score &&
+      pred.home_score === pred.away_score &&
+      match.advance_team_id != null &&
+      pred.advance_team_id != null &&
+      pred.advance_team_id === match.advance_team_id
+    ) {
+      row.advanceHits += 1;
     }
     row.points += scorePrediction(match, pred);
   }

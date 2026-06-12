@@ -49,48 +49,61 @@ export default async function HomePage() {
             .
           </div>
         ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="card overflow-x-auto">
+            <table className="w-full min-w-[660px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-subtle">
-                  <th className="w-12 px-5 py-3 font-medium">#</th>
-                  <th className="px-2 py-3 font-medium">Jugador</th>
-                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Exactos</th>
-                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Esp.</th>
-                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Apuestas</th>
-                  <th className="px-5 py-3 text-right font-medium">Puntos</th>
+                  <th className="w-10 py-3 pl-5 pr-2 font-medium">#</th>
+                  <th className="py-3 pr-3 font-medium">Jugador</th>
+                  <th className="px-3 py-3 text-center font-medium">Exactos</th>
+                  <th className="px-3 py-3 text-center font-medium">Ganador</th>
+                  <th className="px-3 py-3 text-center font-medium">Elim.</th>
+                  <th className="px-3 py-3 text-center font-medium">Grupo</th>
+                  <th className="px-3 py-3 text-center font-medium">Goleador</th>
+                  <th className="px-3 py-3 text-center font-medium">Apuestas</th>
+                  <th className="sticky right-0 bg-white px-5 py-3 text-right font-medium shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.08)]">
+                    Puntos
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {leaderboard.map((row, i) => {
                   const isMe = player?.id === row.playerId;
                   const medal = ["🥇", "🥈", "🥉"][i] ?? null;
+                  const stickyBg = isMe ? "bg-[#f1f6fd]" : "bg-white";
                   return (
                     <tr
                       key={row.playerId}
-                      className={`border-t border-hair ${isMe ? "bg-accent/[0.05]" : ""}`}
+                      className={`border-t border-hair ${isMe ? "bg-[#f1f6fd]" : ""}`}
                     >
-                      <td className="px-5 py-3 text-subtle">{medal ?? i + 1}</td>
-                      <td className="px-2 py-3 font-medium text-ink">
+                      <td className="py-3 pl-5 pr-2 text-subtle">{medal ?? i + 1}</td>
+                      <td className="whitespace-nowrap py-3 pr-3 font-medium text-ink">
                         {row.name}
                         {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
                       </td>
-                      <td className="hidden px-3 py-3 text-center text-subtle tnum sm:table-cell">
-                        {row.exact}
+                      <Cell value={row.exact} />
+                      <Cell value={row.outcomes} />
+                      <Cell value={row.advanceHits} />
+                      <Cell value={row.groupHits} />
+                      <td className="px-3 py-3 text-center">
+                        {row.scorerHit ? (
+                          <span className="text-green-600">✓</span>
+                        ) : (
+                          <span className="text-black/20">–</span>
+                        )}
                       </td>
-                      <td className="hidden px-3 py-3 text-center text-subtle tnum sm:table-cell">
-                        {row.bonus > 0 ? `+${row.bonus}` : "–"}
-                      </td>
-                      <td className="hidden px-3 py-3 text-center tnum sm:table-cell">
+                      <td className="px-3 py-3 text-center tnum">
                         {row.betNet === 0 ? (
-                          <span className="text-subtle">–</span>
+                          <span className="text-black/20">–</span>
                         ) : (
                           <span className={row.betNet > 0 ? "text-green-600" : "text-red-600"}>
                             {row.betNet > 0 ? `+${row.betNet}` : row.betNet}
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-right text-lg font-semibold text-ink tnum">
+                      <td
+                        className={`sticky right-0 ${stickyBg} px-5 py-3 text-right text-lg font-semibold text-ink tnum shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.08)]`}
+                      >
                         {row.points}
                       </td>
                     </tr>
@@ -130,5 +143,17 @@ export default async function HomePage() {
         </ul>
       </section>
     </div>
+  );
+}
+
+function Cell({ value }: { value: number }) {
+  return (
+    <td className="px-3 py-3 text-center tnum">
+      {value > 0 ? (
+        <span className="text-subtle">{value}</span>
+      ) : (
+        <span className="text-black/20">–</span>
+      )}
+    </td>
   );
 }
