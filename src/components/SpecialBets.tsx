@@ -31,7 +31,6 @@ export default function SpecialBets({
         onClick={() => setOpen((v) => !v)}
         className="card flex w-full items-center gap-3 p-4 text-left transition hover:bg-black/[0.015]"
       >
-        <span className="text-xl">🎰</span>
         <span className="flex-1">
           <span className="block font-semibold text-ink">Apuestas especiales</span>
           <span className="block text-xs text-subtle">Añádele pomada 🧴</span>

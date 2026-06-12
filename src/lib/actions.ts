@@ -6,6 +6,7 @@ import { supabase } from "./supabase";
 import { isMatchLocked } from "./lock";
 import { getSpecialLockInfo } from "./special";
 import { getStandings } from "./standings";
+import { persistSeenState } from "./notifications";
 import {
   hashPin,
   verifyPin,
@@ -85,6 +86,14 @@ export async function loginPlayer(
 export async function logout() {
   await clearSession();
   redirect("/");
+}
+
+// Marca las notificaciones como vistas (guarda el estado actual del jugador).
+export async function markNotificationsSeen() {
+  const player = await getCurrentPlayer();
+  if (!player) return;
+  await persistSeenState(player.id);
+  revalidatePath("/");
 }
 
 // ============================================================

@@ -24,7 +24,7 @@ export default function AdminBets({ bets }: { bets: AdminBet[] }) {
     <section className="card space-y-5 p-5">
       <div>
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">
-          Apuestas especiales 🎰
+          Apuestas especiales
         </h2>
         <p className="mb-3 text-xs text-subtle">
           Crea apuestas a que algo ocurre. La gente apuesta sus puntos a que SÍ pasa. Tú la

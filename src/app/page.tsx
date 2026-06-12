@@ -57,7 +57,7 @@ export default async function HomePage() {
                   <th className="px-2 py-3 font-medium">Jugador</th>
                   <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Exactos</th>
                   <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Esp.</th>
-                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">🎰</th>
+                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Apuestas</th>
                   <th className="px-5 py-3 text-right font-medium">Puntos</th>
                 </tr>
               </thead>

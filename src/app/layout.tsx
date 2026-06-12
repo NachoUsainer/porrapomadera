@@ -5,6 +5,8 @@ import { getCurrentPlayer, isAdmin } from "@/lib/session";
 import { logout } from "@/lib/actions";
 import HiddenGems from "@/components/HiddenGems";
 import { allGemTexts, gemsForName } from "@/lib/hiddenGems";
+import NotificationBell from "@/components/NotificationBell";
+import { getNotifications } from "@/lib/notifications";
 
 export const metadata: Metadata = {
   title: "Porra pomadera",
@@ -18,6 +20,7 @@ export default async function RootLayout({
 }) {
   const player = await getCurrentPlayer();
   const admin = await isAdmin();
+  const notif = player ? await getNotifications(player.id) : null;
 
   return (
     <html lang="es">
@@ -44,6 +47,9 @@ export default async function RootLayout({
             <div className="ml-auto flex items-center gap-3">
               {player ? (
                 <>
+                  {notif && (
+                    <NotificationBell items={notif.items} unseen={notif.unseen} />
+                  )}
                   <span className="hidden text-ink sm:inline">{player.name}</span>
                   <form action={logout}>
                     <button className="btn-ghost">Salir</button>
