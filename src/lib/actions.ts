@@ -6,7 +6,14 @@ import { supabase } from "./supabase";
 import { isMatchLocked } from "./lock";
 import { getSpecialLockInfo } from "./special";
 import { getStandings } from "./standings";
-import { persistSeenState } from "./notifications";
+import {
+  markRead,
+  genMatchNotifications,
+  genBetNotifications,
+  genGroupNotifications,
+  genScorerNotifications,
+  regenerateAllNotifications,
+} from "./notifications";
 import { MAX_WAGER } from "./scoring";
 import {
   hashPin,
@@ -89,11 +96,11 @@ export async function logout() {
   redirect("/");
 }
 
-// Marca las notificaciones como vistas (guarda el estado actual del jugador).
+// Marca las notificaciones del jugador como leídas.
 export async function markNotificationsSeen() {
   const player = await getCurrentPlayer();
   if (!player) return;
-  await persistSeenState(player.id);
+  await markRead(player.id);
   revalidatePath("/");
 }
 
@@ -383,6 +390,7 @@ export async function adminSetResult(
     if (error) return { error: "No se pudo guardar el resultado." };
   }
 
+  await genMatchNotifications(matchId);
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/predictions");
@@ -542,6 +550,7 @@ export async function adminSetGroupResults(
       .upsert(rows, { onConflict: "group_name" });
     if (error) return { error: "No se pudieron guardar los campeones de grupo." };
   }
+  await genGroupNotifications();
   revalidatePath("/admin");
   revalidatePath("/");
   return { saved: true };
@@ -558,6 +567,7 @@ export async function adminSetTopScorer(
     .from("settings")
     .upsert({ key: "top_scorer", value: name || null }, { onConflict: "key" });
   if (error) return { error: "No se pudo guardar el goleador." };
+  await genScorerNotifications();
   revalidatePath("/admin");
   revalidatePath("/");
   return { saved: true };
@@ -619,8 +629,17 @@ export async function adminResolveBet(formData: FormData) {
     .from("special_bets")
     .update({ outcome, is_open: outcome == null })
     .eq("id", betId);
+  await genBetNotifications(betId);
   revalidatePath("/admin");
   revalidatePath("/predictions");
+  revalidatePath("/");
+}
+
+// Regenera todo el historial de notificaciones (backfill puntual).
+export async function adminRegenNotifications() {
+  await requireAdmin();
+  await regenerateAllNotifications();
+  revalidatePath("/admin");
   revalidatePath("/");
 }
 

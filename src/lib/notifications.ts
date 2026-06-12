@@ -1,127 +1,206 @@
 import "server-only";
-import { supabase, type Match, type Prediction } from "./supabase";
+import { supabase } from "./supabase";
 import { scorePrediction, POINTS, normalizeText } from "./scoring";
 
-export type NotifItem = { id: string; text: string; positive: boolean };
-type PlayerState = { base: number; bets: Record<string, boolean> };
+export type NotifItem = {
+  id: string;
+  text: string;
+  positive: boolean;
+  points: number;
+  read: boolean;
+  createdAt: string;
+};
 
-// Calcula el "estado" actual de un jugador: puntos por aciertos (base) y
-// las apuestas resueltas en las que participó.
-async function computePlayerState(playerId: string): Promise<{
-  base: number;
-  resolvedBets: { betId: string; won: boolean; stake: number; question: string }[];
-  state: PlayerState;
-}> {
-  const [
-    { data: preds },
-    { data: matches },
-    { data: gwPreds },
-    { data: gResults },
-    { data: scorerPred },
-    { data: settings },
-    { data: wagers },
-    { data: bets },
-  ] = await Promise.all([
-    supabase.from("predictions").select("*").eq("player_id", playerId),
-    supabase.from("matches").select("*"),
-    supabase
-      .from("group_winner_predictions")
-      .select("group_name, team_id")
-      .eq("player_id", playerId),
-    supabase.from("group_results").select("group_name, winner_team_id"),
-    supabase
-      .from("scorer_predictions")
-      .select("player_name")
-      .eq("player_id", playerId)
-      .maybeSingle(),
-    supabase.from("settings").select("value").eq("key", "top_scorer").maybeSingle(),
-    supabase.from("bet_wagers").select("bet_id, stake").eq("player_id", playerId),
-    supabase.from("special_bets").select("id, question, outcome"),
-  ]);
-
-  const matchById = new Map(((matches ?? []) as Match[]).map((m) => [m.id, m]));
-  let base = 0;
-  for (const p of (preds ?? []) as Prediction[]) {
-    const m = matchById.get(p.match_id);
-    if (m) base += scorePrediction(m, p);
-  }
-  const winByGroup = new Map(
-    (gResults ?? []).filter((g) => g.winner_team_id != null).map((g) => [g.group_name, g.winner_team_id])
-  );
-  for (const g of gwPreds ?? []) {
-    if (winByGroup.get(g.group_name) === g.team_id) base += POINTS.GROUP_WINNER;
-  }
-  const top = settings?.value ? normalizeText(settings.value) : null;
-  if (top && scorerPred?.player_name && normalizeText(scorerPred.player_name) === top) {
-    base += POINTS.TOP_SCORER;
-  }
-
-  const betById = new Map((bets ?? []).map((b) => [b.id, b]));
-  const resolvedBets: { betId: string; won: boolean; stake: number; question: string }[] = [];
-  const stateBets: Record<string, boolean> = {};
-  for (const w of wagers ?? []) {
-    const b = betById.get(w.bet_id);
-    if (!b || b.outcome == null) continue;
-    resolvedBets.push({
-      betId: w.bet_id,
-      won: b.outcome === true,
-      stake: w.stake,
-      question: b.question,
-    });
-    stateBets[w.bet_id] = b.outcome === true;
-  }
-
-  return { base, resolvedBets, state: { base, bets: stateBets } };
-}
-
-// Devuelve las novedades sin ver para un jugador.
+// ---------- Lectura (campana) ----------
 export async function getNotifications(
   playerId: string
 ): Promise<{ items: NotifItem[]; unseen: number }> {
-  const [{ data: playerRow }, computed] = await Promise.all([
-    supabase.from("players").select("seen_state").eq("id", playerId).maybeSingle(),
-    computePlayerState(playerId),
-  ]);
+  const { data } = await supabase
+    .from("notifications")
+    .select("id, text, positive, points, read, created_at")
+    .eq("player_id", playerId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const items: NotifItem[] = (data ?? []).map((n) => ({
+    id: n.id,
+    text: n.text,
+    positive: n.positive,
+    points: n.points,
+    read: n.read,
+    createdAt: n.created_at,
+  }));
+  return { items, unseen: items.filter((i) => !i.read).length };
+}
 
-  let seen: PlayerState = { base: 0, bets: {} };
-  if (playerRow?.seen_state) {
-    try {
-      seen = JSON.parse(playerRow.seen_state);
-    } catch {
-      seen = { base: 0, bets: {} };
-    }
+export async function markRead(playerId: string) {
+  await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("player_id", playerId)
+    .eq("read", false);
+}
+
+// ---------- Generadores (se llaman desde las acciones del admin) ----------
+type Row = {
+  player_id: string;
+  ref: string;
+  text: string;
+  kind: string;
+  positive: boolean;
+  points: number;
+};
+
+async function replace(ref: string | { like: string }, rows: Row[]) {
+  // Borra las notificaciones previas de ese evento y mete las nuevas.
+  if (typeof ref === "string") await supabase.from("notifications").delete().eq("ref", ref);
+  else await supabase.from("notifications").delete().like("ref", ref.like);
+  if (rows.length) await supabase.from("notifications").insert(rows);
+}
+
+// Notificaciones de un partido al ponerle resultado.
+export async function genMatchNotifications(matchId: number) {
+  const ref = `match:${matchId}`;
+  const { data: m } = await supabase.from("matches").select("*").eq("id", matchId).maybeSingle();
+  if (!m || !m.finished || m.home_score == null || m.away_score == null) {
+    await replace(ref, []);
+    return;
   }
+  const [{ data: teams }, { data: preds }] = await Promise.all([
+    supabase.from("teams").select("id, name").in("id", [m.home_team_id, m.away_team_id]),
+    supabase.from("predictions").select("*").eq("match_id", matchId),
+  ]);
+  const nameById = new Map((teams ?? []).map((t) => [t.id, t.name]));
+  const home = nameById.get(m.home_team_id) ?? "?";
+  const away = nameById.get(m.away_team_id) ?? "?";
 
-  const items: NotifItem[] = [];
+  const rows: Row[] = [];
+  for (const p of preds ?? []) {
+    const pts = scorePrediction(m as any, p as any);
+    if (pts <= 0) continue;
+    const exact = p.home_score === m.home_score && p.away_score === m.away_score;
+    const realDraw = m.home_score === m.away_score;
+    const predDraw = p.home_score === p.away_score;
+    const advance =
+      realDraw &&
+      predDraw &&
+      m.advance_team_id != null &&
+      p.advance_team_id === m.advance_team_id;
+    let label: string;
+    let emoji: string;
+    if (exact) {
+      emoji = "🎯";
+      label = "Resultado exacto";
+    } else if (realDraw) {
+      emoji = "✅";
+      label = "Empate acertado";
+    } else {
+      emoji = "✅";
+      label = "Ganador acertado";
+    }
+    if (advance) label += " + quién pasa";
+    rows.push({
+      player_id: p.player_id,
+      ref,
+      kind: "match",
+      positive: true,
+      points: pts,
+      text: `${emoji} ${label}: ${home}–${away} (+${pts})`,
+    });
+  }
+  await replace(ref, rows);
+}
 
-  // Apuestas resueltas que aún no había visto (gane o pierda)
-  for (const b of computed.resolvedBets) {
-    if (seen.bets?.[b.betId] === undefined) {
-      items.push({
-        id: `bet-${b.betId}`,
-        text: b.won
-          ? `🎰 "${b.question}" · ¡ganaste +${b.stake} pts!`
-          : `🎰 "${b.question}" · perdiste -${b.stake} pts`,
-        positive: b.won,
+// Notificaciones de una apuesta al resolverla (gane o pierda).
+export async function genBetNotifications(betId: string) {
+  const ref = `bet:${betId}`;
+  const { data: bet } = await supabase
+    .from("special_bets")
+    .select("question, outcome")
+    .eq("id", betId)
+    .maybeSingle();
+  if (!bet || bet.outcome == null) {
+    await replace(ref, []);
+    return;
+  }
+  const { data: wagers } = await supabase
+    .from("bet_wagers")
+    .select("player_id, stake")
+    .eq("bet_id", betId);
+  const rows: Row[] = (wagers ?? []).map((w) => {
+    const won = bet.outcome === true;
+    return {
+      player_id: w.player_id,
+      ref,
+      kind: "bet",
+      positive: won,
+      points: won ? w.stake : -w.stake,
+      text: won
+        ? `🎰 "${bet.question}" · ¡ganaste +${w.stake} pts!`
+        : `🎰 "${bet.question}" · perdiste -${w.stake} pts`,
+    };
+  });
+  await replace(ref, rows);
+}
+
+// Notificaciones de campeones de grupo (recalcula todas).
+export async function genGroupNotifications() {
+  const [{ data: results }, { data: teams }, { data: preds }] = await Promise.all([
+    supabase.from("group_results").select("group_name, winner_team_id"),
+    supabase.from("teams").select("id, name"),
+    supabase.from("group_winner_predictions").select("player_id, group_name, team_id"),
+  ]);
+  const nameById = new Map((teams ?? []).map((t) => [t.id, t.name]));
+  const winnerByGroup = new Map(
+    (results ?? []).filter((r) => r.winner_team_id != null).map((r) => [r.group_name, r.winner_team_id])
+  );
+  const rows: Row[] = [];
+  for (const p of preds ?? []) {
+    const w = winnerByGroup.get(p.group_name);
+    if (w != null && w === p.team_id) {
+      rows.push({
+        player_id: p.player_id,
+        ref: `group:${p.group_name}`,
+        kind: "group",
+        positive: true,
+        points: POINTS.GROUP_WINNER,
+        text: `🏆 Campeón del Grupo ${p.group_name}: ${nameById.get(w) ?? "?"} (+${POINTS.GROUP_WINNER})`,
       });
     }
   }
-
-  // Puntos ganados por aciertos (predicciones, campeón de grupo, goleador)
-  const gained = computed.base - (seen.base ?? 0);
-  if (gained > 0) {
-    items.push({
-      id: `base-${computed.base}`,
-      text: `🎉 +${gained} pts por tus aciertos`,
-      positive: true,
-    });
-  }
-
-  return { items, unseen: items.length };
+  await replace({ like: "group:%" }, rows);
 }
 
-// Marca todo como visto (guarda el estado actual).
-export async function persistSeenState(playerId: string) {
-  const { state } = await computePlayerState(playerId);
-  await supabase.from("players").update({ seen_state: JSON.stringify(state) }).eq("id", playerId);
+// Notificaciones del máximo goleador.
+export async function genScorerNotifications() {
+  const [{ data: settings }, { data: preds }] = await Promise.all([
+    supabase.from("settings").select("value").eq("key", "top_scorer").maybeSingle(),
+    supabase.from("scorer_predictions").select("player_id, player_name"),
+  ]);
+  const top = settings?.value ? normalizeText(settings.value) : null;
+  const rows: Row[] = [];
+  if (top) {
+    for (const p of preds ?? []) {
+      if (normalizeText(p.player_name) === top) {
+        rows.push({
+          player_id: p.player_id,
+          ref: "scorer",
+          kind: "scorer",
+          positive: true,
+          points: POINTS.TOP_SCORER,
+          text: `🥇 Máximo goleador acertado: ${settings!.value} (+${POINTS.TOP_SCORER})`,
+        });
+      }
+    }
+  }
+  await replace("scorer", rows);
+}
+
+// Regenera TODO (para backfill puntual).
+export async function regenerateAllNotifications() {
+  const { data: matches } = await supabase.from("matches").select("id").eq("finished", true);
+  for (const m of matches ?? []) await genMatchNotifications(m.id);
+  const { data: bets } = await supabase.from("special_bets").select("id").not("outcome", "is", null);
+  for (const b of bets ?? []) await genBetNotifications(b.id);
+  await genGroupNotifications();
+  await genScorerNotifications();
 }

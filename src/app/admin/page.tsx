@@ -1,6 +1,7 @@
 import { supabase, type Match, type Team } from "@/lib/supabase";
 import { isAdmin } from "@/lib/session";
 import { getStandings } from "@/lib/standings";
+import { adminRegenNotifications } from "@/lib/actions";
 import { flagFor } from "@/lib/flags";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import AdminPanel from "@/components/AdminPanel";
@@ -94,7 +95,12 @@ export default async function AdminPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-extrabold">Administración</h1>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold">Administración</h1>
+        <form action={adminRegenNotifications}>
+          <button className="btn-ghost text-xs">↻ Regenerar notificaciones</button>
+        </form>
+      </div>
       <div className="mb-10">
         <AdminBets bets={adminBets} matchOptions={matchOptions} />
       </div>
