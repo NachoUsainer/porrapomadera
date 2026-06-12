@@ -3,7 +3,12 @@ import { supabase, type Match, type Team, type Prediction } from "@/lib/supabase
 import { getCurrentPlayer } from "@/lib/session";
 import { scorePrediction } from "@/lib/scoring";
 import { isMatchLocked } from "@/lib/lock";
+import { getSpecialLockInfo, isGroupLocked, isScorerLocked } from "@/lib/special";
 import PredictionsForm, { type MatchRow } from "@/components/PredictionsForm";
+import SpecialPredictions, {
+  type GroupItem,
+  type ScorerItem,
+} from "@/components/SpecialPredictions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +19,31 @@ export default async function PredictionsPage() {
   const player = await getCurrentPlayer();
   if (!player) redirect("/login");
 
-  const [{ data: matches }, { data: teams }, { data: preds }] = await Promise.all([
+  const [
+    { data: matches },
+    { data: teams },
+    { data: preds },
+    { data: gwPreds },
+    { data: gResults },
+    { data: scorerPred },
+    { data: settings },
+    lockInfo,
+  ] = await Promise.all([
     supabase.from("matches").select("*"),
     supabase.from("teams").select("*"),
     supabase.from("predictions").select("*").eq("player_id", player.id),
+    supabase
+      .from("group_winner_predictions")
+      .select("group_name, team_id")
+      .eq("player_id", player.id),
+    supabase.from("group_results").select("group_name, winner_team_id"),
+    supabase
+      .from("scorer_predictions")
+      .select("player_name")
+      .eq("player_id", player.id)
+      .maybeSingle(),
+    supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
+    getSpecialLockInfo(),
   ]);
 
   const teamById = new Map((teams ?? []).map((t: Team) => [t.id, t]));
@@ -64,22 +90,57 @@ export default async function PredictionsPage() {
     };
   });
 
+  // ---- Predicciones especiales ----
+  const pickByGroup = new Map(
+    (gwPreds ?? []).map((g) => [g.group_name, g.team_id as number])
+  );
+  const winnerByGroup = new Map(
+    (gResults ?? []).map((g) => [g.group_name, g.winner_team_id as number | null])
+  );
+  const groupNames = [
+    ...new Set((teams ?? []).map((t: Team) => t.group_name).filter(Boolean) as string[]),
+  ].sort();
+
+  const groupItems: GroupItem[] = groupNames.map((name) => ({
+    name,
+    teams: (teams ?? [])
+      .filter((t: Team) => t.group_name === name)
+      .map((t: Team) => ({ id: t.id, name: t.name }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    locked: isGroupLocked(lockInfo.groupFirstKickoff.get(name), now),
+    pickedTeamId: pickByGroup.get(name) ?? null,
+    winnerTeamId: winnerByGroup.get(name) ?? null,
+  }));
+
+  const scorerItem: ScorerItem = {
+    value: scorerPred?.player_name ?? "",
+    locked: isScorerLocked(lockInfo.earliestR32, now),
+    real: settings?.value ?? null,
+  };
+
   return (
-    <div>
-      <div className="mb-8 text-center">
+    <div className="space-y-12">
+      <div className="text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">Mis predicciones</h1>
         <p className="mx-auto mt-2 max-w-md text-[15px] text-subtle">
-          Rellena los resultados. Puedes cambiarlos hasta el inicio de cada partido.
+          Resultados, campeones de grupo y goleador. Cada partido se cierra al empezar.
         </p>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="card p-10 text-center text-[15px] text-subtle">
-          Todavía no hay partidos cargados. El admin tiene que añadirlos.
-        </div>
-      ) : (
-        <PredictionsForm rows={rows} />
-      )}
+      <SpecialPredictions groups={groupItems} scorer={scorerItem} />
+
+      <div>
+        <h2 className="mb-4 px-1 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Resultados de los partidos
+        </h2>
+        {rows.length === 0 ? (
+          <div className="card p-10 text-center text-[15px] text-subtle">
+            Todavía no hay partidos cargados.
+          </div>
+        ) : (
+          <PredictionsForm rows={rows} />
+        )}
+      </div>
     </div>
   );
 }

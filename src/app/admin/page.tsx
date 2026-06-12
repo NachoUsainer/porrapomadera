@@ -2,6 +2,7 @@ import { supabase, type Match, type Team } from "@/lib/supabase";
 import { isAdmin } from "@/lib/session";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import AdminPanel from "@/components/AdminPanel";
+import AdminSpecials from "@/components/AdminSpecials";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,21 @@ export default async function AdminPage() {
     return <AdminLoginForm />;
   }
 
-  const [{ data: teams }, { data: matches }, { data: players }, { data: preds }] =
-    await Promise.all([
-      supabase.from("teams").select("*").order("name"),
-      supabase.from("matches").select("*"),
-      supabase.from("players").select("id, name, created_at").order("created_at"),
-      supabase.from("predictions").select("player_id"),
-    ]);
+  const [
+    { data: teams },
+    { data: matches },
+    { data: players },
+    { data: preds },
+    { data: groupResults },
+    { data: settings },
+  ] = await Promise.all([
+    supabase.from("teams").select("*").order("name"),
+    supabase.from("matches").select("*"),
+    supabase.from("players").select("id, name, created_at").order("created_at"),
+    supabase.from("predictions").select("player_id"),
+    supabase.from("group_results").select("group_name, winner_team_id"),
+    supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
+  ]);
 
   const predCount = new Map<string, number>();
   for (const p of preds ?? []) {
@@ -42,6 +51,13 @@ export default async function AdminPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-extrabold">Administración</h1>
+      <div className="mb-10">
+        <AdminSpecials
+          teams={(teams ?? []) as Team[]}
+          groupResults={groupResults ?? []}
+          topScorer={settings?.value ?? ""}
+        />
+      </div>
       <AdminPanel
         teams={(teams ?? []) as Team[]}
         matches={sortedMatches}

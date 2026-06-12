@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase, type Match } from "@/lib/supabase";
-import { buildLeaderboard, POINTS } from "@/lib/scoring";
+import { buildLeaderboard, bonusByPlayer, POINTS } from "@/lib/scoring";
 import { getCurrentPlayer } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -8,15 +8,32 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const player = await getCurrentPlayer();
 
-  const [{ data: players }, { data: matches }, { data: predictions }] =
-    await Promise.all([
-      supabase.from("players").select("id, name"),
-      supabase.from("matches").select("*"),
-      supabase.from("predictions").select("*"),
-    ]);
+  const [
+    { data: players },
+    { data: matches },
+    { data: predictions },
+    { data: gwPreds },
+    { data: gResults },
+    { data: scorerPreds },
+    { data: settings },
+  ] = await Promise.all([
+    supabase.from("players").select("id, name"),
+    supabase.from("matches").select("*"),
+    supabase.from("predictions").select("*"),
+    supabase.from("group_winner_predictions").select("player_id, group_name, team_id"),
+    supabase.from("group_results").select("group_name, winner_team_id"),
+    supabase.from("scorer_predictions").select("player_id, player_name"),
+    supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
+  ]);
 
   const allMatches = (matches ?? []) as Match[];
-  const leaderboard = buildLeaderboard(players ?? [], allMatches, predictions ?? []);
+  const bonus = bonusByPlayer(
+    gwPreds ?? [],
+    gResults ?? [],
+    scorerPreds ?? [],
+    settings?.value ?? null
+  );
+  const leaderboard = buildLeaderboard(players ?? [], allMatches, predictions ?? [], bonus);
   const finishedCount = allMatches.filter((m) => m.finished).length;
 
   return (
@@ -66,7 +83,7 @@ export default async function HomePage() {
                   <th className="w-12 px-5 py-3 font-medium">#</th>
                   <th className="px-2 py-3 font-medium">Jugador</th>
                   <th className="px-3 py-3 text-center font-medium">Exactos</th>
-                  <th className="px-3 py-3 text-center font-medium">Aciertos</th>
+                  <th className="hidden px-3 py-3 text-center font-medium sm:table-cell">Esp.</th>
                   <th className="px-5 py-3 text-right font-medium">Puntos</th>
                 </tr>
               </thead>
@@ -85,7 +102,9 @@ export default async function HomePage() {
                         {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
                       </td>
                       <td className="px-3 py-3 text-center text-subtle tnum">{row.exact}</td>
-                      <td className="px-3 py-3 text-center text-subtle tnum">{row.outcomes}</td>
+                      <td className="hidden px-3 py-3 text-center text-subtle tnum sm:table-cell">
+                        {row.bonus > 0 ? `+${row.bonus}` : "–"}
+                      </td>
                       <td className="px-5 py-3 text-right text-lg font-semibold text-ink tnum">
                         {row.points}
                       </td>
@@ -114,6 +133,14 @@ export default async function HomePage() {
           <li>
             <span className="font-medium text-ink">+{POINTS.ADVANCE} pts</span> · en
             eliminatorias, acertar quién clasifica.
+          </li>
+          <li>
+            <span className="font-medium text-ink">+{POINTS.GROUP_WINNER} pts</span> · acertar
+            el campeón de un grupo.
+          </li>
+          <li>
+            <span className="font-medium text-ink">+{POINTS.TOP_SCORER} pts</span> · acertar el
+            máximo goleador del torneo.
           </li>
         </ul>
       </section>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "./supabase";
 import { isMatchLocked } from "./lock";
+import { getSpecialLockInfo } from "./special";
 import {
   hashPin,
   verifyPin,
@@ -144,6 +145,65 @@ export async function savePredictions(
       .upsert(rows, { onConflict: "player_id,match_id" });
     if (error) return { error: "No se pudieron guardar las predicciones." };
   }
+
+  revalidatePath("/predictions");
+  revalidatePath("/");
+  return { saved: true };
+}
+
+// ============================================================
+//  PREDICCIONES ESPECIALES (campeón de grupo + máximo goleador)
+// ============================================================
+export async function saveGroupWinners(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const player = await getCurrentPlayer();
+  if (!player) return { error: "Tienes que iniciar sesión." };
+
+  const { groupFirstKickoff } = await getSpecialLockInfo();
+  const now = Date.now();
+
+  const rows: { player_id: string; group_name: string; team_id: number }[] = [];
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("group_")) continue;
+    const group = key.slice(6);
+    const teamId = Number(value);
+    if (!teamId) continue;
+    const k = groupFirstKickoff.get(group);
+    if (k != null && k <= now) continue; // grupo ya empezado: bloqueado
+    rows.push({ player_id: player.id, group_name: group, team_id: teamId });
+  }
+
+  if (rows.length) {
+    const { error } = await supabase
+      .from("group_winner_predictions")
+      .upsert(rows, { onConflict: "player_id,group_name" });
+    if (error) return { error: "No se pudieron guardar los campeones de grupo." };
+  }
+  revalidatePath("/predictions");
+  revalidatePath("/");
+  return { saved: true };
+}
+
+export async function saveScorer(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const player = await getCurrentPlayer();
+  if (!player) return { error: "Tienes que iniciar sesión." };
+
+  const { earliestR32 } = await getSpecialLockInfo();
+  if (earliestR32 != null && earliestR32 <= Date.now()) {
+    return { error: "El plazo para elegir goleador ya se cerró." };
+  }
+  const name = String(formData.get("scorer") ?? "").trim();
+  if (name.length < 2) return { error: "Escribe el nombre del goleador." };
+
+  const { error } = await supabase
+    .from("scorer_predictions")
+    .upsert({ player_id: player.id, player_name: name }, { onConflict: "player_id" });
+  if (error) return { error: "No se pudo guardar el goleador." };
 
   revalidatePath("/predictions");
   revalidatePath("/");
@@ -380,6 +440,45 @@ export async function adminBulkImport(
   revalidatePath("/admin");
   revalidatePath("/predictions");
   return { imported: rows.length };
+}
+
+// Fijar el campeón REAL de cada grupo (lo usa el ranking para los bonus).
+export async function adminSetGroupResults(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+  const rows: { group_name: string; winner_team_id: number | null }[] = [];
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("gr_")) continue;
+    const group = key.slice(3);
+    rows.push({ group_name: group, winner_team_id: value ? Number(value) : null });
+  }
+  if (rows.length) {
+    const { error } = await supabase
+      .from("group_results")
+      .upsert(rows, { onConflict: "group_name" });
+    if (error) return { error: "No se pudieron guardar los campeones de grupo." };
+  }
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { saved: true };
+}
+
+// Fijar el máximo goleador REAL del torneo.
+export async function adminSetTopScorer(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+  const name = String(formData.get("top_scorer") ?? "").trim();
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key: "top_scorer", value: name || null }, { onConflict: "key" });
+  if (error) return { error: "No se pudo guardar el goleador." };
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { saved: true };
 }
 
 // Expulsar a un jugador (p.ej. duplicados). Borra también sus predicciones

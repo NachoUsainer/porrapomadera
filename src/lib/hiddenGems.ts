@@ -22,6 +22,9 @@ export const GEMS: Gem[] = [
   { text: "Alvarín, alvarín: alvarín te quiero ❤️", names: ["alvarin", "alvaro", "alvarito", "alvar"] },
   { text: "Joan Aragonés, ese portugués 🇵🇹", names: ["joan", "aragones"] },
   { text: "Javi va a la estéreo antes que al estadio 🎶", names: ["javi", "javier", "javo", "espin", "javiespin"] },
+  { text: "Vamos, vamos Yisu 📣", names: ["yisu", "jesus", "crisol"] },
+  { text: "Laaa gallina Jordi Matas: co co co co co co co cooooo 🐔", names: ["jordi", "matas", "jordimatas"] },
+  { text: "De la torreta al mundial 🚀" },
   { text: "Jemba Jemba 🃏" },
 ];
 
