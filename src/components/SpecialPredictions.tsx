@@ -61,10 +61,10 @@ function GroupChampions({ groups }: { groups: GroupItem[] }) {
                   <span className="font-semibold text-ink">Grupo {g.name}</span>
                   {winnerName ? (
                     <span className={correct ? "text-green-600" : "text-subtle"}>
-                      {correct ? `✓ +${POINTS.GROUP_WINNER}` : "✗"}
+                      {correct ? `+${POINTS.GROUP_WINNER}` : "—"}
                     </span>
                   ) : g.locked ? (
-                    <span>🔒</span>
+                    <span className="text-subtle">cerrado</span>
                   ) : null}
                 </div>
                 <select
@@ -94,7 +94,7 @@ function GroupChampions({ groups }: { groups: GroupItem[] }) {
           <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>
         )}
         {"saved" in state && (
-          <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">Guardado ✓</p>
+          <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">Guardado</p>
         )}
 
         {anyOpen && (
@@ -143,17 +143,17 @@ function TopScorer({ scorer }: { scorer: ScorerItem }) {
           <p className="mt-2 text-xs text-subtle">
             Goleador real: <span className="font-medium text-ink">{scorer.real}</span>{" "}
             {correct ? (
-              <span className="text-green-600">✓ +{POINTS.TOP_SCORER}</span>
+              <span className="text-green-600">+{POINTS.TOP_SCORER}</span>
             ) : (
-              <span>✗</span>
+              <span>—</span>
             )}
           </p>
         )}
         {scorer.locked && !scorer.real && (
-          <p className="mt-2 text-xs text-subtle">🔒 Plazo cerrado.</p>
+          <p className="mt-2 text-xs text-subtle">Plazo cerrado.</p>
         )}
         {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
-        {"saved" in state && <p className="mt-2 text-sm text-green-700">Guardado ✓</p>}
+        {"saved" in state && <p className="mt-2 text-sm text-green-700">Guardado</p>}
       </form>
     </section>
   );

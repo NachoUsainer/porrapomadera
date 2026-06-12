@@ -63,7 +63,7 @@ export default function AdminSpecials({
               {gPending ? "…" : "Guardar campeones"}
             </button>
             {gState.error && <span className="text-sm text-red-600">{gState.error}</span>}
-            {"saved" in gState && <span className="text-sm text-green-700">Guardado ✓</span>}
+            {"saved" in gState && <span className="text-sm text-green-700">Guardado</span>}
           </div>
         </form>
       </div>
@@ -87,7 +87,7 @@ export default function AdminSpecials({
             {sPending ? "…" : "Guardar goleador"}
           </button>
           {sState.error && <span className="text-sm text-red-600">{sState.error}</span>}
-          {"saved" in sState && <span className="text-sm text-green-700">Guardado ✓</span>}
+          {"saved" in sState && <span className="text-sm text-green-700">Guardado</span>}
         </form>
       </div>
     </section>

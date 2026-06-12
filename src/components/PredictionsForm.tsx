@@ -73,7 +73,7 @@ export default function PredictionsForm({ rows }: { rows: MatchRow[] }) {
       )}
       {state && !state.error && "saved" in (state as object) && (
         <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">
-          Predicciones guardadas ✓
+          Predicciones guardadas
         </p>
       )}
 
@@ -106,7 +106,7 @@ function MatchCard({ m }: { m: MatchRow }) {
             {m.points != null && <span className="ml-1 text-accent">+{m.points}</span>}
           </span>
         ) : m.pendingTeams ? (
-          <span className="rounded-full bg-ink/[0.06] px-2 py-0.5">⏳ Por definir</span>
+          <span className="rounded-full bg-ink/[0.06] px-2 py-0.5">Por definir</span>
         ) : m.locked ? (
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">Cerrado</span>
         ) : (

@@ -49,7 +49,7 @@ export default function AdminBets({
           />
           <div className="flex flex-wrap items-center gap-2">
             <select name="match_id" defaultValue="" className="input min-w-[16rem] flex-1">
-              <option value="">⏱️ Cierre automático: sin partido (cierro a mano)</option>
+              <option value="">Cierre automático: sin partido (cierro a mano)</option>
               {matchOptions.map((m) => (
                 <option key={m.id} value={m.id}>
                   Cierra al empezar: {m.label}
@@ -96,7 +96,7 @@ function BetRow({ bet }: { bet: AdminBet }) {
           <p className="text-sm font-medium text-ink">{bet.question}</p>
           {bet.closesAt && (
             <p className="text-[11px] text-subtle">
-              ⏱️ {bet.autoClosed ? "Cerró" : "Cierra"} el {fmt(bet.closesAt)}
+              {bet.autoClosed ? "Cerró" : "Cierra"} el {fmt(bet.closesAt)}
             </p>
           )}
         </div>
@@ -132,8 +132,8 @@ function BetRow({ bet }: { bet: AdminBet }) {
                 {bet.is_open ? "Cerrar apuestas" : "Reabrir"}
               </button>
             </form>
-            <ResultButton betId={bet.id} result="yes" label="✓ Resolver SÍ" green />
-            <ResultButton betId={bet.id} result="no" label="✗ Resolver NO" />
+            <ResultButton betId={bet.id} result="yes" label="Resolver SÍ" green />
+            <ResultButton betId={bet.id} result="no" label="Resolver NO" />
           </>
         )}
 

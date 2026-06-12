@@ -86,17 +86,9 @@ export async function genMatchNotifications(matchId: number) {
       m.advance_team_id != null &&
       p.advance_team_id === m.advance_team_id;
     let label: string;
-    let emoji: string;
-    if (exact) {
-      emoji = "🎯";
-      label = "Resultado exacto";
-    } else if (realDraw) {
-      emoji = "✅";
-      label = "Empate acertado";
-    } else {
-      emoji = "✅";
-      label = "Ganador acertado";
-    }
+    if (exact) label = "Resultado exacto";
+    else if (realDraw) label = "Empate acertado";
+    else label = "Ganador acertado";
     if (advance) label += " + quién pasa";
     rows.push({
       player_id: p.player_id,
@@ -104,7 +96,7 @@ export async function genMatchNotifications(matchId: number) {
       kind: "match",
       positive: true,
       points: pts,
-      text: `${emoji} ${label}: ${home}–${away} (+${pts})`,
+      text: `${label}: ${home}–${away} (+${pts})`,
     });
   }
   await replace(ref, rows);
@@ -135,8 +127,8 @@ export async function genBetNotifications(betId: string) {
       positive: won,
       points: won ? w.stake : -w.stake,
       text: won
-        ? `🎰 "${bet.question}" · ¡ganaste +${w.stake} pts!`
-        : `🎰 "${bet.question}" · perdiste -${w.stake} pts`,
+        ? `"${bet.question}" · ¡ganaste +${w.stake} pts!`
+        : `"${bet.question}" · perdiste -${w.stake} pts`,
     };
   });
   await replace(ref, rows);
@@ -163,7 +155,7 @@ export async function genGroupNotifications() {
         kind: "group",
         positive: true,
         points: POINTS.GROUP_WINNER,
-        text: `🏆 Campeón del Grupo ${p.group_name}: ${nameById.get(w) ?? "?"} (+${POINTS.GROUP_WINNER})`,
+        text: `Campeón del Grupo ${p.group_name}: ${nameById.get(w) ?? "?"} (+${POINTS.GROUP_WINNER})`,
       });
     }
   }
@@ -187,7 +179,7 @@ export async function genScorerNotifications() {
           kind: "scorer",
           positive: true,
           points: POINTS.TOP_SCORER,
-          text: `🥇 Máximo goleador acertado: ${settings!.value} (+${POINTS.TOP_SCORER})`,
+          text: `Máximo goleador acertado: ${settings!.value} (+${POINTS.TOP_SCORER})`,
         });
       }
     }

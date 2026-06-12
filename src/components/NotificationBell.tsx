@@ -82,7 +82,7 @@ export default function NotificationBell({
               Notificaciones
             </div>
             {items.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-subtle">Sin novedades aún 🔕</p>
+              <p className="px-4 py-6 text-center text-sm text-subtle">Sin novedades aún</p>
             ) : (
               <ul className="max-h-96 overflow-auto">
                 {items.map((it) => {

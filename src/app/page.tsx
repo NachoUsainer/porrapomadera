@@ -69,14 +69,13 @@ export default async function HomePage() {
               <tbody>
                 {leaderboard.map((row, i) => {
                   const isMe = player?.id === row.playerId;
-                  const medal = ["🥇", "🥈", "🥉"][i] ?? null;
                   const stickyBg = isMe ? "bg-[#dfeafb]" : "bg-[#f3f7fd]";
                   return (
                     <tr
                       key={row.playerId}
                       className={`border-t border-hair ${isMe ? "bg-[#f1f6fd]" : ""}`}
                     >
-                      <td className="py-3 pl-5 pr-2 text-subtle">{medal ?? i + 1}</td>
+                      <td className="py-3 pl-5 pr-2 font-semibold text-subtle tnum">{i + 1}</td>
                       <td className="whitespace-nowrap py-3 pr-3 font-medium text-ink">
                         {row.name}
                         {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
@@ -85,9 +84,9 @@ export default async function HomePage() {
                       <Cell value={row.outcomes} />
                       <Cell value={row.advanceHits} />
                       <Cell value={row.groupHits} />
-                      <td className="px-3 py-3 text-center">
+                      <td className="px-3 py-3 text-center tnum">
                         {row.scorerHit ? (
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600">+{POINTS.TOP_SCORER}</span>
                         ) : (
                           <span className="text-black/20">–</span>
                         )}

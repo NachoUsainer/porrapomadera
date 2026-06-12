@@ -68,7 +68,7 @@ function Players({ players }: { players: PlayerRow[] }) {
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">Jugadores ({players.length})</h2>
       <p className="mb-3 text-xs text-subtle">
         Expulsa a usuarios que creas duplicados. Al expulsar se borran también sus
-        predicciones. ⚠️ No tiene vuelta atrás.
+        predicciones. No tiene vuelta atrás.
       </p>
       {players.length === 0 ? (
         <p className="text-sm text-subtle">Aún no hay jugadores registrados.</p>
@@ -338,7 +338,7 @@ function BulkImport() {
     <section className="card p-5">
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">Importar calendario</h2>
       <p className="mb-3 text-xs text-subtle">
-        Pega el calendario, un partido por línea, separado por <code>;</code> →{" "}
+        Pega el calendario, un partido por línea, separado por <code>;</code>:{" "}
         <code>fase ; local ; visitante ; AAAA-MM-DD HH:MM ; etiqueta</code>. Las
         selecciones se crean solas. Las horas se interpretan en hora CET/CEST. Esto{" "}
         <strong>añade</strong> partidos (no borra los que ya haya).
@@ -357,7 +357,7 @@ function BulkImport() {
           {state.error && <span className="text-sm text-red-600">{state.error}</span>}
           {"imported" in state && state.imported != null && (
             <span className="text-sm text-green-700">
-              ✓ {state.imported} partidos importados.
+              {state.imported} partidos importados.
             </span>
           )}
         </div>

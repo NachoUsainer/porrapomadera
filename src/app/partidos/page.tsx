@@ -131,10 +131,10 @@ export default async function PartidosPage() {
 
                       <div className="mt-4 border-t border-hair pt-3">
                         {pendingTeams ? (
-                          <p className="text-center text-xs text-subtle">⏳ Cruce por definir.</p>
+                          <p className="text-center text-xs text-subtle">Cruce por definir.</p>
                         ) : !locked ? (
                           <p className="text-center text-xs text-subtle">
-                            🔒 Ocultas hasta el cierre · {mPreds.length}{" "}
+                            Ocultas hasta el cierre · {mPreds.length}{" "}
                             {mPreds.length === 1 ? "pronóstico" : "pronósticos"}
                           </p>
                         ) : rows.length === 0 ? (
@@ -162,7 +162,9 @@ export default async function PartidosPage() {
                                     </td>
                                     {isKnockout && (
                                       <td className="py-1.5 text-center text-xs text-subtle">
-                                        {r.advance ? `▶ ${flagFor(tName(r.advance))}` : ""}
+                                        {r.advance
+                                          ? `pasa: ${flagFor(tName(r.advance))} ${tName(r.advance)}`
+                                          : ""}
                                       </td>
                                     )}
                                     {m.finished && (

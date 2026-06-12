@@ -98,7 +98,7 @@ export default async function AdminPage() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Administración</h1>
         <form action={adminRegenNotifications}>
-          <button className="btn-ghost text-xs">↻ Regenerar notificaciones</button>
+          <button className="btn-ghost text-xs">Regenerar notificaciones</button>
         </form>
       </div>
       <div className="mb-10">

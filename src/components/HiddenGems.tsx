@@ -63,7 +63,6 @@ export default function HiddenGems({
         }`}
         aria-hidden={!show}
       >
-        <span className="mr-1 opacity-60">✦</span>
         {msg}
       </div>
     </div>

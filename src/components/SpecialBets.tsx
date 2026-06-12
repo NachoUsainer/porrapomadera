@@ -47,18 +47,14 @@ export default function SpecialBets({
       >
         <span className="flex-1">
           <span className="block font-semibold text-ink">Apuestas especiales</span>
-          <span className="block text-xs text-subtle">Añádele pomada 🧴</span>
+          <span className="block text-xs text-subtle">Añádele pomada</span>
         </span>
         {openBets > 0 && !open && (
           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
             {openBets} abierta{openBets > 1 ? "s" : ""}
           </span>
         )}
-        <span
-          className={`text-subtle transition-transform duration-300 ${open ? "rotate-180" : ""}`}
-        >
-          ▾
-        </span>
+        <span className="text-lg leading-none text-subtle">{open ? "−" : "+"}</span>
       </button>
 
       {open && (
@@ -79,7 +75,7 @@ export default function SpecialBets({
 
           {bets.length === 0 ? (
             <div className="card p-6 text-center text-sm text-subtle">
-              No hay apuestas ahora mismo. ¡Atento, que el admin las va metiendo! 👀
+              No hay apuestas ahora mismo. ¡Atento, que el admin las va metiendo!
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -119,7 +115,7 @@ function BetCard({ bet }: { bet: BetItem }) {
         <Resolved bet={bet} />
       ) : bet.status === "closed" ? (
         <p className="text-xs text-subtle">
-          🔒 Cerrada para apuestas{bet.myStake ? ` · jugaste ${bet.myStake} pts` : ""}.
+          Cerrada para apuestas{bet.myStake ? ` · jugaste ${bet.myStake} pts` : ""}.
           Esperando resultado.
         </p>
       ) : (
@@ -156,7 +152,7 @@ function BetCard({ bet }: { bet: BetItem }) {
 
           {bet.closesAt && (
             <p className="mt-1.5 text-xs text-amber-700">
-              ⏱️ Se cierra el {closeLabel(bet.closesAt)}
+              Se cierra el {closeLabel(bet.closesAt)}
             </p>
           )}
 
@@ -170,7 +166,7 @@ function BetCard({ bet }: { bet: BetItem }) {
           )}
 
           {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
-          {"saved" in state && <p className="mt-2 text-sm text-green-700">Apuesta registrada ✓</p>}
+          {"saved" in state && <p className="mt-2 text-sm text-green-700">Apuesta registrada</p>}
           {bet.available < 1 && !bet.myStake && (
             <p className="mt-2 text-xs text-subtle">
               Aún no tienes puntos disponibles para apostar.
