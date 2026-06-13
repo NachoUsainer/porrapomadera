@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { getCurrentPlayer, isAdmin } from "@/lib/session";
 import { deleteMessage } from "@/lib/actions";
 import MessageComposer from "@/components/MessageComposer";
+import MessageReactions from "@/components/MessageReactions";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,23 @@ export default async function MuroPage() {
   ]);
   const nameById = new Map((players ?? []).map((p) => [p.id, p.name as string]));
 
+  // Reacciones de los mensajes mostrados
+  const msgIds = (messages ?? []).map((m) => m.id);
+  const { data: reacts } = msgIds.length
+    ? await supabase
+        .from("message_reactions")
+        .select("message_id, player_id, reaction")
+        .in("message_id", msgIds)
+    : { data: [] };
+  const reactionsByMsg = new Map<string, { counts: Record<string, number>; mine: string | null }>();
+  for (const id of msgIds) reactionsByMsg.set(id, { counts: {}, mine: null });
+  for (const r of reacts ?? []) {
+    const e = reactionsByMsg.get(r.message_id);
+    if (!e) continue;
+    e.counts[r.reaction] = (e.counts[r.reaction] ?? 0) + 1;
+    if (r.player_id === player.id) e.mine = r.reaction;
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -93,6 +111,11 @@ export default async function MuroPage() {
                 <p className="whitespace-pre-wrap break-words pl-9 text-sm text-ink">
                   {renderText(m.text, meFirst)}
                 </p>
+                <MessageReactions
+                  messageId={m.id}
+                  counts={reactionsByMsg.get(m.id)?.counts ?? {}}
+                  mine={reactionsByMsg.get(m.id)?.mine ?? null}
+                />
                 {canDelete && (
                   <form action={deleteMessage} className="mt-1 pl-9">
                     <input type="hidden" name="message_id" value={m.id} />

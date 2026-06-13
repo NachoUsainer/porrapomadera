@@ -16,6 +16,7 @@ import {
   regenerateAllNotifications,
 } from "./notifications";
 import { MAX_WAGER } from "./scoring";
+import { REACTION_KEYS } from "./reactions";
 import {
   hashPin,
   verifyPin,
@@ -353,6 +354,37 @@ export async function postMessage(
 
   revalidatePath("/");
   return { saved: true };
+}
+
+// Reaccionar a un mensaje (una por jugador y mensaje; misma reacción = quitar).
+export async function reactToMessage(messageId: string, reaction: string) {
+  const player = await getCurrentPlayer();
+  if (!player) return;
+  if (!messageId || !REACTION_KEYS.has(reaction)) return;
+
+  const { data: existing } = await supabase
+    .from("message_reactions")
+    .select("reaction")
+    .eq("message_id", messageId)
+    .eq("player_id", player.id)
+    .maybeSingle();
+
+  if (existing?.reaction === reaction) {
+    // misma reacción -> quitarla
+    await supabase
+      .from("message_reactions")
+      .delete()
+      .eq("message_id", messageId)
+      .eq("player_id", player.id);
+  } else {
+    await supabase
+      .from("message_reactions")
+      .upsert(
+        { message_id: messageId, player_id: player.id, reaction },
+        { onConflict: "message_id,player_id" }
+      );
+  }
+  revalidatePath("/");
 }
 
 export async function deleteMessage(formData: FormData) {
