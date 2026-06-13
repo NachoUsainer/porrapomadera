@@ -2,7 +2,7 @@
 export const REACTIONS: { key: string; label: string }[] = [
   { key: "genio", label: "Eres un genio" },
   { key: "payaso", label: "Payaso" },
-  { key: "tonto", label: "Más tonto y no naces" },
+  { key: "meo", label: "Meo y no echo gota" },
   { key: "yisu", label: "Ni el Yisu" },
   { key: "champions", label: "Te regalo tu Champions particular" },
 ];
