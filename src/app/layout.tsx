@@ -49,11 +49,6 @@ export default async function RootLayout({
             <Link href="/" className="flex items-baseline gap-1.5 text-ink">
               <span className="font-semibold tracking-tight">Porra pomadera</span>
             </Link>
-            {player && (
-              <Link href="/" className="transition hover:text-ink">
-                Muro
-              </Link>
-            )}
             <Link href="/ranking" className="transition hover:text-ink">
               Ranking
             </Link>
