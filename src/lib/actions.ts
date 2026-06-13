@@ -301,6 +301,80 @@ export async function removeWager(formData: FormData) {
 }
 
 // ============================================================
+//  MURO DE MENSAJES (+ menciones @)
+// ============================================================
+export async function postMessage(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const player = await getCurrentPlayer();
+  if (!player) return { error: "Tienes que iniciar sesión." };
+
+  const text = String(formData.get("text") ?? "").trim();
+  if (text.length < 1) return { error: "Escribe algo." };
+  if (text.length > 500) return { error: "Máximo 500 caracteres." };
+
+  const mentionIds = String(formData.get("mentions") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const { data: msg, error } = await supabase
+    .from("messages")
+    .insert({ player_id: player.id, text })
+    .select("id")
+    .single();
+  if (error || !msg) return { error: "No se pudo publicar el mensaje." };
+
+  if (mentionIds.length) {
+    // Validar que son jugadores reales y no uno mismo.
+    const { data: valid } = await supabase
+      .from("players")
+      .select("id")
+      .in("id", mentionIds);
+    const targets = (valid ?? []).map((p) => p.id).filter((id) => id !== player.id);
+    if (targets.length) {
+      await supabase
+        .from("message_mentions")
+        .insert(targets.map((id) => ({ message_id: msg.id, player_id: id })));
+      const snippet = text.length > 70 ? text.slice(0, 70) + "…" : text;
+      await supabase.from("notifications").insert(
+        targets.map((id) => ({
+          player_id: id,
+          ref: `msg:${msg.id}`,
+          kind: "mention",
+          positive: true,
+          points: 0,
+          text: `${player.name} te ha mencionado: «${snippet}»`,
+        }))
+      );
+    }
+  }
+
+  revalidatePath("/");
+  return { saved: true };
+}
+
+export async function deleteMessage(formData: FormData) {
+  const player = await getCurrentPlayer();
+  if (!player) return;
+  const id = String(formData.get("message_id") ?? "");
+  if (!id) return;
+  const { data: msg } = await supabase
+    .from("messages")
+    .select("player_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!msg) return;
+  // Solo el autor o el admin pueden borrar.
+  const admin = await isAdmin();
+  if (!admin && msg.player_id !== player.id) return;
+  await supabase.from("messages").delete().eq("id", id);
+  await supabase.from("notifications").delete().eq("ref", `msg:${id}`);
+  revalidatePath("/");
+}
+
+// ============================================================
 //  ADMINISTRACIÓN
 // ============================================================
 export async function adminLogin(

@@ -1,158 +1,109 @@
-import Link from "next/link";
-import { POINTS } from "@/lib/scoring";
-import { getStandings } from "@/lib/standings";
-import { getCurrentPlayer } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { getCurrentPlayer, isAdmin } from "@/lib/session";
+import { deleteMessage } from "@/lib/actions";
+import MessageComposer from "@/components/MessageComposer";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  const player = await getCurrentPlayer();
-  const { leaderboard, playerCount, finishedCount } = await getStandings();
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-  return (
-    <div className="space-y-12">
-      {/* Hero */}
-      <section className="pt-2 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-subtle">
-          Mundial 2026
-        </p>
-        <h1 className="mt-3 text-5xl font-semibold tracking-tight text-ink sm:text-6xl">
-          Porra pomadera
-        </h1>
-        <p className="mt-3 text-lg text-subtle">by JARS Crisol</p>
-        <p className="mx-auto mt-4 max-w-md text-[15px] text-subtle">
-          {playerCount} jugadores · {finishedCount} partidos jugados
-        </p>
-        {!player && (
-          <div className="mt-7 flex justify-center gap-3">
-            <Link href="/register" className="btn-primary px-6 py-2.5">
-              Unirme a la porra
-            </Link>
-            <Link href="/login" className="btn-ghost px-6 py-2.5">
-              Ya tengo usuario
-            </Link>
-          </div>
-        )}
-      </section>
-
-      {/* Ranking */}
-      <section>
-        <h2 className="mb-4 px-1 text-sm font-semibold uppercase tracking-wide text-subtle">
-          Clasificación
-        </h2>
-        {leaderboard.length === 0 ? (
-          <div className="card p-10 text-center text-[15px] text-subtle">
-            Aún no hay jugadores. Sé el primero en{" "}
-            <Link href="/register" className="font-medium text-accent hover:underline">
-              unirte
-            </Link>
-            .
-          </div>
-        ) : (
-          <div className="card overflow-x-auto">
-            <table className="w-full min-w-[660px] text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-subtle">
-                  <th className="w-10 py-3 pl-5 pr-2 font-medium">#</th>
-                  <th className="py-3 pr-3 font-medium">Jugador</th>
-                  <th className="px-3 py-3 text-center font-medium">Exactos</th>
-                  <th className="px-3 py-3 text-center font-medium">Ganador</th>
-                  <th className="px-3 py-3 text-center font-medium">Elim.</th>
-                  <th className="px-3 py-3 text-center font-medium">Grupo</th>
-                  <th className="px-3 py-3 text-center font-medium">Goleador</th>
-                  <th className="px-3 py-3 text-center font-medium">Apuestas</th>
-                  <th className="sticky right-0 bg-[#eaf1fb] px-5 py-3 text-right font-semibold text-accent shadow-[-6px_0_10px_-6px_rgba(0,0,0,0.12)]">
-                    Puntos
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((row, i) => {
-                  const isMe = player?.id === row.playerId;
-                  const stickyBg = isMe ? "bg-[#dfeafb]" : "bg-[#f3f7fd]";
-                  return (
-                    <tr
-                      key={row.playerId}
-                      className={`border-t border-hair ${isMe ? "bg-[#f1f6fd]" : ""}`}
-                    >
-                      <td className="py-3 pl-5 pr-2 font-semibold text-subtle tnum">{i + 1}</td>
-                      <td className="whitespace-nowrap py-3 pr-3 font-medium text-ink">
-                        {row.name}
-                        {isMe && <span className="ml-1.5 text-xs text-accent">tú</span>}
-                      </td>
-                      <Cell value={row.exact} />
-                      <Cell value={row.outcomes} />
-                      <Cell value={row.advanceHits} />
-                      <Cell value={row.groupHits} />
-                      <td className="px-3 py-3 text-center tnum">
-                        {row.scorerHit ? (
-                          <span className="text-green-600">+{POINTS.TOP_SCORER}</span>
-                        ) : (
-                          <span className="text-black/20">–</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-center tnum">
-                        {row.betNet === 0 ? (
-                          <span className="text-black/20">–</span>
-                        ) : (
-                          <span className={row.betNet > 0 ? "text-green-600" : "text-red-600"}>
-                            {row.betNet > 0 ? `+${row.betNet}` : row.betNet}
-                          </span>
-                        )}
-                      </td>
-                      <td
-                        className={`sticky right-0 ${stickyBg} px-5 py-3 text-right text-xl font-bold text-ink tnum shadow-[-6px_0_10px_-6px_rgba(0,0,0,0.12)]`}
-                      >
-                        {row.points}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* Reglas */}
-      <section className="card p-6 text-[15px] text-subtle">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink">
-          Puntuación
-        </h2>
-        <ul className="space-y-1.5">
-          <li>
-            <span className="font-medium text-ink">{POINTS.EXACT} pts</span> · resultado exacto.
-          </li>
-          <li>
-            <span className="font-medium text-ink">{POINTS.OUTCOME} pts</span> · acertar
-            ganador o empate.
-          </li>
-          <li>
-            <span className="font-medium text-ink">+{POINTS.ADVANCE} pts</span> · en
-            eliminatorias, predecir empate y acertar quién pasa (prórroga/penaltis).
-          </li>
-          <li>
-            <span className="font-medium text-ink">+{POINTS.GROUP_WINNER} pts</span> · acertar
-            el campeón de un grupo.
-          </li>
-          <li>
-            <span className="font-medium text-ink">+{POINTS.TOP_SCORER} pts</span> · acertar el
-            máximo goleador del torneo.
-          </li>
-        </ul>
-      </section>
-    </div>
-  );
+function renderText(text: string, meFirst: string) {
+  const parts = text.split(/(@[\p{L}\d_]+)/u);
+  return parts.map((part, i) => {
+    if (part.startsWith("@")) {
+      const isMe = norm(part.slice(1)) === meFirst;
+      return (
+        <span
+          key={i}
+          className={
+            isMe
+              ? "rounded bg-accent/15 px-1 font-semibold text-accent"
+              : "font-medium text-accent"
+          }
+        >
+          {part}
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }
 
-function Cell({ value }: { value: number }) {
+function when(iso: string): string {
+  return new Date(iso).toLocaleString("es-ES", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Madrid",
+  });
+}
+
+export default async function MuroPage() {
+  const player = await getCurrentPlayer();
+  if (!player) redirect("/ranking");
+  const admin = await isAdmin();
+  const meFirst = norm(player.name).split(" ")[0];
+
+  const [{ data: messages }, { data: players }] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("id, text, created_at, player_id")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("players").select("id, name"),
+  ]);
+  const nameById = new Map((players ?? []).map((p) => [p.id, p.name as string]));
+
   return (
-    <td className="px-3 py-3 text-center tnum">
-      {value > 0 ? (
-        <span className="text-subtle">{value}</span>
-      ) : (
-        <span className="text-black/20">–</span>
-      )}
-    </td>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">Muro</h1>
+        <p className="mx-auto mt-1 max-w-md text-[15px] text-subtle">
+          Chincha a quien quieras. Usa <span className="text-accent">@</span> para mencionar y
+          que le llegue el aviso.
+        </p>
+      </div>
+
+      <MessageComposer players={(players ?? []) as { id: string; name: string }[]} meId={player.id} />
+
+      <div className="space-y-2.5">
+        {(messages ?? []).length === 0 ? (
+          <div className="card p-8 text-center text-sm text-subtle">
+            Aún no hay mensajes. ¡Rompe el hielo!
+          </div>
+        ) : (
+          (messages ?? []).map((m) => {
+            const author = nameById.get(m.player_id) ?? "—";
+            const mine = m.player_id === player.id;
+            const canDelete = mine || admin;
+            return (
+              <div key={m.id} className="card p-4">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">
+                      {author.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="text-sm font-semibold text-ink">{author}</span>
+                    {mine && <span className="text-[11px] text-accent">tú</span>}
+                  </div>
+                  <span className="text-[11px] text-subtle">{when(m.created_at)}</span>
+                </div>
+                <p className="whitespace-pre-wrap break-words pl-9 text-sm text-ink">
+                  {renderText(m.text, meFirst)}
+                </p>
+                {canDelete && (
+                  <form action={deleteMessage} className="mt-1 pl-9">
+                    <input type="hidden" name="message_id" value={m.id} />
+                    <button className="text-[11px] text-red-500 hover:underline">Borrar</button>
+                  </form>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
