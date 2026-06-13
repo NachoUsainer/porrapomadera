@@ -7,6 +7,7 @@ import HiddenGems from "@/components/HiddenGems";
 import { allGemTexts, gemsForName } from "@/lib/hiddenGems";
 import NotificationBell from "@/components/NotificationBell";
 import { getNotifications } from "@/lib/notifications";
+import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Porra pomadera",
@@ -21,6 +22,24 @@ export default async function RootLayout({
   const player = await getCurrentPlayer();
   const admin = await isAdmin();
   const notif = player ? await getNotifications(player.id) : null;
+
+  // Mensajes recientes del muro para el toast flotante (solo si estás registrado).
+  let toastMessages: { author: string; text: string }[] = [];
+  if (player) {
+    const [{ data: msgs }, { data: pls }] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("text, player_id")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase.from("players").select("id, name"),
+    ]);
+    const byId = new Map((pls ?? []).map((p) => [p.id, p.name as string]));
+    toastMessages = (msgs ?? []).map((m) => ({
+      author: byId.get(m.player_id) ?? "—",
+      text: m.text as string,
+    }));
+  }
 
   return (
     <html lang="es">
@@ -81,6 +100,7 @@ export default async function RootLayout({
           <HiddenGems
             gems={allGemTexts()}
             personal={gemsForName(player?.name).map((g) => g.text)}
+            messages={toastMessages}
           />
           <p className="text-center text-[11px] tracking-wide text-subtle">
             Porra pomadera · by JARS Crisol · Mundial 2026
