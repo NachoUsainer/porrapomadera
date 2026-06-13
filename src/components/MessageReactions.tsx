@@ -4,8 +4,6 @@ import { useState, useTransition } from "react";
 import { reactToMessage } from "@/lib/actions";
 import { REACTIONS } from "@/lib/reactions";
 
-const labelOf = (key: string) => REACTIONS.find((r) => r.key === key)?.label ?? "";
-
 export default function MessageReactions({
   messageId,
   counts,
@@ -111,7 +109,7 @@ export default function MessageReactions({
           }}
           className="touch-none select-none rounded-full bg-black/[0.05] px-3 py-1 text-[11px] font-medium text-subtle transition hover:bg-black/[0.09] hover:text-ink"
         >
-          {mine ? `Tu reacción: ${labelOf(mine)}` : "Reaccionar"}
+          Reaccionar
         </button>
       </div>
     </div>
