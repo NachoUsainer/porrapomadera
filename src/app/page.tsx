@@ -61,8 +61,8 @@ export default async function MuroPage() {
       <div className="text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">Muro</h1>
         <p className="mx-auto mt-1 max-w-md text-[15px] text-subtle">
-          Chincha a quien quieras. Usa <span className="text-accent">@</span> para mencionar y
-          que le llegue el aviso.
+          Dale pomada a quien quieras, menos a Usin que es el admin. Usa{" "}
+          <span className="text-accent">@</span> para mencionar y que le llegue el aviso.
         </p>
       </div>
 
