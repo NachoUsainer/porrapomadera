@@ -646,7 +646,11 @@ export async function adminRegenNotifications() {
 export async function adminDeleteBet(formData: FormData) {
   await requireAdmin();
   const betId = String(formData.get("bet_id") ?? "");
-  if (betId) await supabase.from("special_bets").delete().eq("id", betId);
+  if (betId) {
+    await supabase.from("special_bets").delete().eq("id", betId);
+    // Limpia también las notificaciones de esa apuesta (la apuesta ya no existe).
+    await genBetNotifications(betId);
+  }
   revalidatePath("/admin");
   revalidatePath("/predictions");
   revalidatePath("/");
