@@ -102,6 +102,26 @@ export async function genMatchNotifications(matchId: number) {
   await replace(ref, rows);
 }
 
+// Aviso a TODOS los jugadores de que hay una nueva apuesta especial.
+export async function genNewBetNotification(betId: string) {
+  const ref = `betnew:${betId}`;
+  const [{ data: bet }, { data: players }] = await Promise.all([
+    supabase.from("special_bets").select("question").eq("id", betId).maybeSingle(),
+    supabase.from("players").select("id"),
+  ]);
+  const rows: Row[] = bet
+    ? (players ?? []).map((p) => ({
+        player_id: p.id,
+        ref,
+        kind: "betnew",
+        positive: true,
+        points: 0,
+        text: `Nueva apuesta especial: "${bet.question}"`,
+      }))
+    : [];
+  await replace(ref, rows);
+}
+
 // Notificaciones de una apuesta al resolverla (gane o pierda).
 export async function genBetNotifications(betId: string) {
   const ref = `bet:${betId}`;

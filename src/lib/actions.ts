@@ -10,6 +10,7 @@ import {
   markRead,
   genMatchNotifications,
   genBetNotifications,
+  genNewBetNotification,
   genGroupNotifications,
   genScorerNotifications,
   regenerateAllNotifications,
@@ -594,8 +595,16 @@ export async function adminCreateBet(
     if (m?.kickoff) closes_at = m.kickoff;
   }
 
-  const { error } = await supabase.from("special_bets").insert({ question, closes_at });
-  if (error) return { error: "No se pudo crear la apuesta." };
+  const { data: created, error } = await supabase
+    .from("special_bets")
+    .insert({ question, closes_at })
+    .select("id")
+    .single();
+  if (error || !created) return { error: "No se pudo crear la apuesta." };
+
+  // Avisar a todos los jugadores de la nueva apuesta.
+  await genNewBetNotification(created.id);
+
   revalidatePath("/admin");
   revalidatePath("/predictions");
   return { saved: true };
@@ -650,6 +659,7 @@ export async function adminDeleteBet(formData: FormData) {
     await supabase.from("special_bets").delete().eq("id", betId);
     // Limpia también las notificaciones de esa apuesta (la apuesta ya no existe).
     await genBetNotifications(betId);
+    await genNewBetNotification(betId);
   }
   revalidatePath("/admin");
   revalidatePath("/predictions");
