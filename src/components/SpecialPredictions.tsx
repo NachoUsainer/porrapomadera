@@ -19,17 +19,21 @@ export type ScorerItem = {
   real: string | null;
 };
 
+export type ScorerPick = { name: string; voters: string[] };
+
 export default function SpecialPredictions({
   groups,
   scorer,
+  scorerPicks,
 }: {
   groups: GroupItem[];
   scorer: ScorerItem;
+  scorerPicks: ScorerPick[];
 }) {
   return (
     <div className="space-y-10">
       <GroupChampions groups={groups} />
-      <TopScorer scorer={scorer} />
+      <TopScorer scorer={scorer} picks={scorerPicks} />
     </div>
   );
 }
@@ -109,7 +113,7 @@ function GroupChampions({ groups }: { groups: GroupItem[] }) {
   );
 }
 
-function TopScorer({ scorer }: { scorer: ScorerItem }) {
+function TopScorer({ scorer, picks }: { scorer: ScorerItem; picks: ScorerPick[] }) {
   const [state, action, pending] = useActionState(saveScorer, {});
   const correct =
     scorer.real != null &&
@@ -122,7 +126,8 @@ function TopScorer({ scorer }: { scorer: ScorerItem }) {
       </h2>
       <p className="mb-3 px-1 text-xs text-subtle">
         El Pichichi del Mundial · <span className="text-ink">+{POINTS.TOP_SCORER} pts</span>.
-        Se cierra al empezar las eliminatorias.
+        Se cierra al empezar los dieciseisavos. <span className="text-ink">Los votos son
+        públicos</span> (puedes cambiar el tuyo hasta el cierre).
       </p>
       <form action={action} className="card p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -155,6 +160,30 @@ function TopScorer({ scorer }: { scorer: ScorerItem }) {
         {state.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
         {"saved" in state && <p className="mt-2 text-sm text-green-700">Guardado</p>}
       </form>
+
+      {picks.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wide text-subtle">
+            Quién va con quién
+          </p>
+          <div className="space-y-1.5">
+            {picks.map((p) => (
+              <div
+                key={p.name}
+                className="flex items-start justify-between gap-3 rounded-xl bg-black/[0.03] px-3 py-2"
+              >
+                <span className="text-sm font-medium text-ink">
+                  {p.name}{" "}
+                  <span className="text-xs font-normal text-subtle">({p.voters.length})</span>
+                </span>
+                <span className="max-w-[60%] text-right text-xs text-subtle">
+                  {p.voters.join(", ")}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

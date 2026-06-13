@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { supabase, type Match, type Team, type Prediction } from "@/lib/supabase";
 import { getCurrentPlayer } from "@/lib/session";
-import { scorePrediction } from "@/lib/scoring";
+import { scorePrediction, normalizeText } from "@/lib/scoring";
 import { isMatchLocked } from "@/lib/lock";
 import { getSpecialLockInfo, isGroupLocked, isScorerLocked } from "@/lib/special";
 import { getStandings } from "@/lib/standings";
@@ -29,6 +29,8 @@ export default async function PredictionsPage() {
     { data: gResults },
     { data: scorerPred },
     { data: settings },
+    { data: allScorers },
+    { data: playersList },
     lockInfo,
   ] = await Promise.all([
     supabase.from("matches").select("*"),
@@ -45,6 +47,8 @@ export default async function PredictionsPage() {
       .eq("player_id", player.id)
       .maybeSingle(),
     supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
+    supabase.from("scorer_predictions").select("player_id, player_name"),
+    supabase.from("players").select("id, name"),
     getSpecialLockInfo(),
   ]);
 
@@ -120,6 +124,20 @@ export default async function PredictionsPage() {
     real: settings?.value ?? null,
   };
 
+  // Votos al máximo goleador (públicos, para generar debate): agrupados por jugador-goleador
+  const playerNameById = new Map((playersList ?? []).map((p) => [p.id, p.name as string]));
+  const scorerGroups = new Map<string, { display: string; voters: string[] }>();
+  for (const s of allScorers ?? []) {
+    const key = normalizeText(s.player_name);
+    if (!key) continue;
+    const g = scorerGroups.get(key) ?? { display: s.player_name, voters: [] as string[] };
+    g.voters.push(playerNameById.get(s.player_id) ?? "—");
+    scorerGroups.set(key, g);
+  }
+  const scorerPicks = [...scorerGroups.values()]
+    .map((g) => ({ name: g.display, voters: g.voters.sort((a, b) => a.localeCompare(b)) }))
+    .sort((a, b) => b.voters.length - a.voters.length || a.name.localeCompare(b.name));
+
   // ---- Apuestas especiales ----
   const standings = await getStandings();
   const myTotal = standings.total.get(player.id) ?? 0;
@@ -158,7 +176,7 @@ export default async function PredictionsPage() {
 
       <SpecialBets bets={betItems} summary={betsSummary} />
 
-      <SpecialPredictions groups={groupItems} scorer={scorerItem} />
+      <SpecialPredictions groups={groupItems} scorer={scorerItem} scorerPicks={scorerPicks} />
 
       <div>
         <h2 className="mb-4 px-1 text-sm font-semibold uppercase tracking-wide text-subtle">

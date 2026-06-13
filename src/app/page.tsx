@@ -65,12 +65,15 @@ export default async function MuroPage() {
         .select("message_id, player_id, reaction")
         .in("message_id", msgIds)
     : { data: [] };
-  const reactionsByMsg = new Map<string, { counts: Record<string, number>; mine: string | null }>();
-  for (const id of msgIds) reactionsByMsg.set(id, { counts: {}, mine: null });
+  const reactionsByMsg = new Map<
+    string,
+    { reactors: Record<string, string[]>; mine: string | null }
+  >();
+  for (const id of msgIds) reactionsByMsg.set(id, { reactors: {}, mine: null });
   for (const r of reacts ?? []) {
     const e = reactionsByMsg.get(r.message_id);
     if (!e) continue;
-    e.counts[r.reaction] = (e.counts[r.reaction] ?? 0) + 1;
+    (e.reactors[r.reaction] ??= []).push(nameById.get(r.player_id) ?? "—");
     if (r.player_id === player.id) e.mine = r.reaction;
   }
 
@@ -113,7 +116,7 @@ export default async function MuroPage() {
                 </p>
                 <MessageReactions
                   messageId={m.id}
-                  counts={reactionsByMsg.get(m.id)?.counts ?? {}}
+                  reactors={reactionsByMsg.get(m.id)?.reactors ?? {}}
                   mine={reactionsByMsg.get(m.id)?.mine ?? null}
                 />
                 {canDelete && (
