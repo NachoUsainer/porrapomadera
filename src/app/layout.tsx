@@ -6,6 +6,7 @@ import { logout } from "@/lib/actions";
 import HiddenGems from "@/components/HiddenGems";
 import { allGemTexts, gemsForName } from "@/lib/hiddenGems";
 import NotificationBell from "@/components/NotificationBell";
+import NavLinks from "@/components/NavLinks";
 import { getNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 
@@ -45,24 +46,11 @@ export default async function RootLayout({
     <html lang="es">
       <body>
         <header className="sticky top-0 z-50 border-b border-hair bg-white/70 backdrop-blur-xl backdrop-saturate-150">
-          <nav className="mx-auto flex max-w-3xl items-center gap-5 px-5 py-3 text-[13px] font-medium text-subtle">
-            <Link href="/" className="flex items-baseline gap-1.5 text-ink">
+          <nav className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3 text-[13px] font-medium text-subtle">
+            <Link href="/" className="mr-1 flex items-baseline gap-1.5 text-ink">
               <span className="font-semibold tracking-tight">Porra pomadera</span>
             </Link>
-            <Link href="/ranking" className="transition hover:text-ink">
-              Ranking
-            </Link>
-            <Link href="/partidos" className="transition hover:text-ink">
-              Partidos
-            </Link>
-            {player && (
-              <Link href="/predictions" className="transition hover:text-ink">
-                Predicciones
-              </Link>
-            )}
-            <Link href="/admin" className="transition hover:text-ink">
-              Admin
-            </Link>
+            <NavLinks showPredictions={!!player} />
             <div className="ml-auto flex items-center gap-3">
               {player ? (
                 <>
