@@ -1,6 +1,6 @@
 import "server-only";
 import { supabase } from "./supabase";
-import { scorePrediction, POINTS, normalizeText } from "./scoring";
+import { scorePrediction, POINTS, normalizeText, BET_WIN_MULTIPLIER } from "./scoring";
 
 export type NotifItem = {
   id: string;
@@ -140,14 +140,15 @@ export async function genBetNotifications(betId: string) {
     .eq("bet_id", betId);
   const rows: Row[] = (wagers ?? []).map((w) => {
     const won = bet.outcome === true;
+    const win = w.stake * BET_WIN_MULTIPLIER;
     return {
       player_id: w.player_id,
       ref,
       kind: "bet",
       positive: won,
-      points: won ? w.stake : -w.stake,
+      points: won ? win : -w.stake,
       text: won
-        ? `"${bet.question}" · ¡ganaste +${w.stake} pts!`
+        ? `"${bet.question}" · ¡ganaste +${win} pts!`
         : `"${bet.question}" · perdiste -${w.stake} pts`,
     };
   });

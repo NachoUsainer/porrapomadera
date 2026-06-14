@@ -12,7 +12,10 @@ export const POINTS = {
 };
 
 // Tope de puntos que se pueden jugar en UNA apuesta especial (aunque tengas más).
-export const MAX_WAGER = 12;
+export const MAX_WAGER = 5;
+
+// Si aciertas, ganas este nº de puntos por cada punto apostado (si fallas, pierdes lo apostado).
+export const BET_WIN_MULTIPLIER = 3;
 
 // Normaliza texto para comparar nombres de goleador (sin acentos ni mayúsculas).
 export function normalizeText(s: string): string {
@@ -131,7 +134,8 @@ export function computeBetEffects(bets: BetLike[], wagers: WagerLike[]) {
       reserved.set(w.player_id, (reserved.get(w.player_id) ?? 0) + w.stake);
       openStake.set(`${w.player_id}:${w.bet_id}`, w.stake);
     } else {
-      const delta = b.outcome ? w.stake : -w.stake;
+      // Aciertas: +3 por punto apostado. Fallas: pierdes lo apostado.
+      const delta = b.outcome ? w.stake * BET_WIN_MULTIPLIER : -w.stake;
       betNet.set(w.player_id, (betNet.get(w.player_id) ?? 0) + delta);
     }
   }

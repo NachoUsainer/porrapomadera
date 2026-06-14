@@ -113,7 +113,7 @@ function reference(s: ReturnType<typeof scenario>) {
     const betById = new Map(s.bets.map((b) => [b.id, b]));
     for (const w of s.wagers.filter((x) => x.player_id === pl.id)) {
       const b = betById.get(w.bet_id);
-      if (b && b.outcome != null) pts += b.outcome ? w.stake : -w.stake;
+      if (b && b.outcome != null) pts += b.outcome ? w.stake * 3 : -w.stake;
     }
     ref.set(pl.id, pts);
   }

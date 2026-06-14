@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { placeWager, removeWager } from "@/lib/actions";
-import { MAX_WAGER } from "@/lib/scoring";
+import { MAX_WAGER, BET_WIN_MULTIPLIER } from "@/lib/scoring";
 
 export type BetItem = {
   id: string;
@@ -62,7 +62,8 @@ export default function SpecialBets({
         <div className="mt-3 animate-[fadein_0.3s_ease]">
           <p className="mb-3 px-1 text-xs text-subtle">
             Apuesta tus puntos a que el evento <span className="text-ink">SÍ ocurre</span>. Si
-            aciertas ganas lo apostado; si fallas, lo pierdes (doble o nada). Máximo{" "}
+            aciertas ganas <span className="text-ink">{BET_WIN_MULTIPLIER} puntos por cada
+            punto apostado</span>; si fallas, pierdes lo apostado. Máximo{" "}
             <span className="text-ink">{MAX_WAGER} pts</span> por apuesta.
           </p>
 
@@ -228,11 +229,12 @@ function Resolved({ bet }: { bet: BetItem }) {
     return <p className="text-xs text-subtle">No apostaste en esta.</p>;
   }
   const won = bet.outcome === true;
+  const win = bet.myStake * BET_WIN_MULTIPLIER;
   return (
     <p className="text-sm">
       Jugaste <span className="font-medium tnum">{bet.myStake}</span> pts ·{" "}
       <span className={won ? "font-semibold text-green-600" : "font-semibold text-red-600"}>
-        {won ? `+${bet.myStake}` : `-${bet.myStake}`} pts
+        {won ? `+${win}` : `-${bet.myStake}`} pts
       </span>
     </p>
   );
