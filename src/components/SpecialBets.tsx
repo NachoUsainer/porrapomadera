@@ -12,6 +12,7 @@ export type BetItem = {
   closesAt: string | null;
   myStake: number | null;
   available: number; // puntos que puedes apostar en esta apuesta
+  bettors: { name: string; stake: number }[]; // quién ha apostado (público)
 };
 
 function closeLabel(iso: string | null): string {
@@ -172,6 +173,24 @@ function BetCard({ bet }: { bet: BetItem }) {
               Aún no tienes puntos disponibles para apostar.
             </p>
           )}
+        </div>
+      )}
+
+      {bet.bettors.length > 0 && (
+        <div className="mt-2 border-t border-hair pt-2">
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-subtle">
+            Han apostado ({bet.bettors.length})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {bet.bettors.map((b, i) => (
+              <span
+                key={i}
+                className="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] text-ink"
+              >
+                {b.name} <span className="text-subtle tnum">{b.stake}</span>
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

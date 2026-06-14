@@ -142,6 +142,13 @@ export default async function PredictionsPage() {
   const standings = await getStandings();
   const myTotal = standings.total.get(player.id) ?? 0;
   const myReserved = standings.reserved.get(player.id) ?? 0;
+  // Quién ha apostado a cada apuesta (público, para picarse)
+  const bettorsByBet = new Map<string, { name: string; stake: number }[]>();
+  for (const w of standings.wagers) {
+    const arr = bettorsByBet.get(w.bet_id) ?? [];
+    arr.push({ name: playerNameById.get(w.player_id) ?? "—", stake: w.stake });
+    bettorsByBet.set(w.bet_id, arr);
+  }
   const betItems: BetItem[] = [...standings.bets]
     .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
     .map((b) => {
@@ -157,6 +164,7 @@ export default async function PredictionsPage() {
         closesAt: b.closes_at,
         myStake: w ? w.stake : null,
         available: standings.availableFor(player.id, b.id),
+        bettors: (bettorsByBet.get(b.id) ?? []).sort((x, y) => y.stake - x.stake),
       };
     });
   const betsSummary: BetsSummary = {
