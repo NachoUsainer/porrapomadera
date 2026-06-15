@@ -70,8 +70,10 @@ export default async function PredictionsPage() {
   const rows: MatchRow[] = allMatches.map((m) => {
     const pred = predByMatch.get(m.id);
     const pendingTeams = !m.home_team_id || !m.away_team_id;
+    // past = ya empezó o terminó (a partir de aquí va al desplegable de cerrados)
+    const past = isMatchLocked(m.kickoff, m.finished, now);
     // Sin equipos definidos no se puede predecir todavía.
-    const locked = pendingTeams || isMatchLocked(m.kickoff, m.finished, now);
+    const locked = pendingTeams || past;
     const points =
       m.finished && pred ? scorePrediction(m, pred as Prediction) : null;
     return {
@@ -85,6 +87,7 @@ export default async function PredictionsPage() {
       awayTeamId: m.away_team_id,
       isKnockout: KNOCKOUT.has(m.stage),
       locked,
+      past,
       pendingTeams,
       finished: m.finished,
       realHome: m.home_score,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { savePredictions } from "@/lib/actions";
 import { STAGE_LABELS } from "@/lib/supabase";
 import { flagFor } from "@/lib/flags";
@@ -16,6 +16,7 @@ export type MatchRow = {
   awayTeamId: number | null;
   isKnockout: boolean;
   locked: boolean;
+  past: boolean; // ya empezado o finalizado
   pendingTeams: boolean;
   finished: boolean;
   realHome: number | null;
@@ -40,9 +41,15 @@ function kickoffLabel(iso: string | null): string {
 
 export default function PredictionsForm({ rows }: { rows: MatchRow[] }) {
   const [state, formAction, pending] = useActionState(savePredictions, {});
+  const [showPast, setShowPast] = useState(false);
+
+  const upcoming = rows.filter((r) => !r.past);
+  const past = rows
+    .filter((r) => r.past)
+    .sort((a, b) => +new Date(b.kickoff ?? 0) - +new Date(a.kickoff ?? 0));
 
   const groups: { stage: string; rows: MatchRow[] }[] = [];
-  for (const r of rows) {
+  for (const r of upcoming) {
     let g = groups.find((x) => x.stage === r.stage);
     if (!g) {
       g = { stage: r.stage, rows: [] };
@@ -67,6 +74,27 @@ export default function PredictionsForm({ rows }: { rows: MatchRow[] }) {
           </div>
         </section>
       ))}
+
+      {/* Partidos ya cerrados, plegados */}
+      {past.length > 0 && (
+        <section>
+          <button
+            type="button"
+            onClick={() => setShowPast((v) => !v)}
+            className="flex w-full items-center justify-between rounded-2xl bg-black/[0.04] px-4 py-3 text-sm font-medium text-ink transition hover:bg-black/[0.07]"
+          >
+            <span>Partidos cerrados ({past.length})</span>
+            <span className="text-lg leading-none text-subtle">{showPast ? "−" : "+"}</span>
+          </button>
+          {showPast && (
+            <div className="mt-2.5 space-y-2.5">
+              {past.map((m) => (
+                <MatchCard key={m.id} m={m} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {state.error && (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>
