@@ -20,6 +20,8 @@ export type PlayerRow = {
   name: string;
   createdAt: string;
   predictions: number;
+  ip: string | null;
+  ipMates: string[]; // otros jugadores con la misma IP
 };
 
 export default function AdminPanel({
@@ -68,7 +70,9 @@ function Players({ players }: { players: PlayerRow[] }) {
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink">Jugadores ({players.length})</h2>
       <p className="mb-3 text-xs text-subtle">
         Expulsa a usuarios que creas duplicados. Al expulsar se borran también sus
-        predicciones. No tiene vuelta atrás.
+        predicciones. No tiene vuelta atrás. Se marca cuando dos cuentas comparten IP, pero
+        ojo: una misma IP puede ser WiFi de casa/familia o red móvil compartida — es una pista,
+        no una prueba.
       </p>
       {players.length === 0 ? (
         <p className="text-sm text-subtle">Aún no hay jugadores registrados.</p>
@@ -88,12 +92,20 @@ function Players({ players }: { players: PlayerRow[] }) {
               return (
                 <tr key={p.id} className="border-t border-hair">
                   <td className="py-1.5 font-medium">
-                    {p.name}
-                    {dup && (
-                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
-                        posible duplicado
-                      </span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{p.name}</span>
+                      {dup && (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-700">
+                          nombre similar
+                        </span>
+                      )}
+                      {p.ipMates.length > 0 && (
+                        <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-normal text-red-700">
+                          mismo IP que: {p.ipMates.join(", ")}
+                        </span>
+                      )}
+                    </div>
+                    {p.ip && <span className="text-[11px] font-normal text-subtle">{p.ip}</span>}
                   </td>
                   <td className="py-1.5 text-subtle">
                     {new Date(p.createdAt).toLocaleDateString("es-ES", {

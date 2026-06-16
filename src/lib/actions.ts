@@ -26,6 +26,7 @@ import {
   setAdminSession,
   isAdmin,
   checkAdminPassword,
+  getClientIp,
 } from "./session";
 
 function normalizeName(name: string) {
@@ -67,6 +68,10 @@ export async function registerPlayer(
 
   if (error || !data) return { error: "No se pudo crear el usuario. Inténtalo de nuevo." };
 
+  // Guardar IP (para detectar duplicados). No bloquea si falla.
+  const ip = await getClientIp();
+  if (ip) await supabase.from("players").update({ signup_ip: ip, last_ip: ip }).eq("id", data.id);
+
   await setSession(data.id);
   redirect("/predictions");
 }
@@ -88,6 +93,9 @@ export async function loginPlayer(
   if (!player || !verifyPin(pin, player.pin_hash)) {
     return { error: "Nombre o PIN incorrectos." };
   }
+
+  const ip = await getClientIp();
+  if (ip) await supabase.from("players").update({ last_ip: ip }).eq("id", player.id);
 
   await setSession(player.id);
   redirect("/predictions");

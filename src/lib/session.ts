@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createHmac, scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import { supabase, type Player } from "./supabase";
 
@@ -86,6 +86,14 @@ export async function setAdminSession() {
 export async function isAdmin(): Promise<boolean> {
   const jar = await cookies();
   return unsign(jar.get(ADMIN_COOKIE)?.value) === "admin";
+}
+
+// IP del cliente (en Vercel viene en x-forwarded-for; el primero es el real).
+export async function getClientIp(): Promise<string | null> {
+  const h = await headers();
+  const xff = h.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || null;
+  return h.get("x-real-ip");
 }
 
 export function checkAdminPassword(pw: string): boolean {

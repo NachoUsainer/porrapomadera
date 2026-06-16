@@ -27,7 +27,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
     supabase.from("matches").select("*"),
-    supabase.from("players").select("id, name, created_at").order("created_at"),
+    supabase.from("players").select("id, name, created_at, last_ip, signup_ip").order("created_at"),
     supabase.from("predictions").select("player_id"),
     supabase.from("group_results").select("group_name, winner_team_id"),
     supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
@@ -37,12 +37,27 @@ export default async function AdminPage() {
   for (const p of preds ?? []) {
     predCount.set(p.player_id, (predCount.get(p.player_id) ?? 0) + 1);
   }
-  const playerRows = (players ?? []).map((p) => ({
-    id: p.id as string,
-    name: p.name as string,
-    createdAt: p.created_at as string,
-    predictions: predCount.get(p.id) ?? 0,
-  }));
+  // Agrupar por IP (last_ip, o signup_ip si no hay) para detectar duplicados
+  const ipOf = (p: { last_ip?: string | null; signup_ip?: string | null }) =>
+    (p.last_ip || p.signup_ip || null) as string | null;
+  const namesByIp = new Map<string, string[]>();
+  for (const p of players ?? []) {
+    const ip = ipOf(p);
+    if (!ip) continue;
+    (namesByIp.get(ip) ?? namesByIp.set(ip, []).get(ip)!).push(p.name as string);
+  }
+  const playerRows = (players ?? []).map((p) => {
+    const ip = ipOf(p);
+    const mates = ip ? (namesByIp.get(ip) ?? []).filter((n) => n !== p.name) : [];
+    return {
+      id: p.id as string,
+      name: p.name as string,
+      createdAt: p.created_at as string,
+      predictions: predCount.get(p.id) ?? 0,
+      ip,
+      ipMates: mates,
+    };
+  });
 
   const sortedMatches = ((matches ?? []) as Match[]).sort((a, b) => {
     const so = STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage);
