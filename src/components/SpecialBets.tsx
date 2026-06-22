@@ -38,12 +38,14 @@ export default function SpecialBets({
 }) {
   const [open, setOpen] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
-  const openBets = bets.filter((b) => b.status === "open").length;
 
-  // Activas (abiertas o cerradas sin resultado) arriba; resueltas plegadas abajo.
-  const rank = (s: BetItem["status"]) => (s === "open" ? 0 : s === "closed" ? 1 : 2);
-  const active = bets.filter((b) => b.status !== "resolved").sort((a, b) => rank(a.status) - rank(b.status));
+  // Grupos: abiertas -> cerradas sin resultado -> tus acertadas -> resto resueltas
+  const openOnes = bets.filter((b) => b.status === "open");
+  const closedOnes = bets.filter((b) => b.status === "closed");
   const resolved = bets.filter((b) => b.status === "resolved");
+  const won = resolved.filter((b) => b.myStake != null && b.outcome === true);
+  const otherResolved = resolved.filter((b) => !(b.myStake != null && b.outcome === true));
+  const openBets = openOnes.length;
 
   return (
     <section>
@@ -87,29 +89,54 @@ export default function SpecialBets({
             </div>
           ) : (
             <div className="space-y-2.5">
-              {active.length === 0 ? (
+              {/* Abiertas y cerradas sin resultado, arriba */}
+              {openOnes.map((b) => (
+                <BetCard key={b.id} bet={b} />
+              ))}
+              {closedOnes.map((b) => (
+                <BetCard key={b.id} bet={b} />
+              ))}
+              {openOnes.length === 0 && closedOnes.length === 0 && (
                 <div className="card p-6 text-center text-sm text-subtle">
                   No hay apuestas activas ahora mismo.
                 </div>
-              ) : (
-                active.map((b) => <BetCard key={b.id} bet={b} />)
               )}
 
-              {resolved.length > 0 && (
+              {/* Resumen de tus apuestas acertadas */}
+              {won.length > 0 && (
+                <div className="card p-4">
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-subtle">
+                    Tus apuestas acertadas ({won.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {won.map((b) => (
+                      <div key={b.id} className="flex items-start justify-between gap-3 text-sm">
+                        <span className="text-ink">{b.question}</span>
+                        <span className="shrink-0 font-semibold text-green-600">
+                          +{(b.myStake ?? 0) * BET_WIN_MULTIPLIER} pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resto de resueltas (no acertadas / sin apostar), plegadas al final */}
+              {otherResolved.length > 0 && (
                 <div>
                   <button
                     type="button"
                     onClick={() => setShowResolved((v) => !v)}
                     className="flex w-full items-center justify-between rounded-2xl bg-black/[0.04] px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-black/[0.07]"
                   >
-                    <span>Apuestas resueltas ({resolved.length})</span>
+                    <span>Otras resueltas ({otherResolved.length})</span>
                     <span className="text-lg leading-none text-subtle">
                       {showResolved ? "−" : "+"}
                     </span>
                   </button>
                   {showResolved && (
                     <div className="mt-2.5 space-y-2.5">
-                      {resolved.map((b) => (
+                      {otherResolved.map((b) => (
                         <BetCard key={b.id} bet={b} />
                       ))}
                     </div>
