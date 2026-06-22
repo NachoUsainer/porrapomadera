@@ -37,7 +37,13 @@ export default function SpecialBets({
   summary: BetsSummary;
 }) {
   const [open, setOpen] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
   const openBets = bets.filter((b) => b.status === "open").length;
+
+  // Activas (abiertas o cerradas sin resultado) arriba; resueltas plegadas abajo.
+  const rank = (s: BetItem["status"]) => (s === "open" ? 0 : s === "closed" ? 1 : 2);
+  const active = bets.filter((b) => b.status !== "resolved").sort((a, b) => rank(a.status) - rank(b.status));
+  const resolved = bets.filter((b) => b.status === "resolved");
 
   return (
     <section>
@@ -81,9 +87,35 @@ export default function SpecialBets({
             </div>
           ) : (
             <div className="space-y-2.5">
-              {bets.map((b) => (
-                <BetCard key={b.id} bet={b} />
-              ))}
+              {active.length === 0 ? (
+                <div className="card p-6 text-center text-sm text-subtle">
+                  No hay apuestas activas ahora mismo.
+                </div>
+              ) : (
+                active.map((b) => <BetCard key={b.id} bet={b} />)
+              )}
+
+              {resolved.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowResolved((v) => !v)}
+                    className="flex w-full items-center justify-between rounded-2xl bg-black/[0.04] px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-black/[0.07]"
+                  >
+                    <span>Apuestas resueltas ({resolved.length})</span>
+                    <span className="text-lg leading-none text-subtle">
+                      {showResolved ? "−" : "+"}
+                    </span>
+                  </button>
+                  {showResolved && (
+                    <div className="mt-2.5 space-y-2.5">
+                      {resolved.map((b) => (
+                        <BetCard key={b.id} bet={b} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
