@@ -4,11 +4,12 @@
 // ===========================================================
 
 // Orden visual (arriba->abajo) de cada columna, por lado.
+// Estructura de cruces = cuadro oficial FIFA Mundial 2026.
 export const LAYOUT = {
-  leftR32: [1, 3, 2, 5, 4, 6, 7, 8],
-  rightR32: [11, 12, 9, 10, 14, 16, 13, 15],
-  leftR16: [1, 2, 5, 6],
-  rightR16: [3, 4, 7, 8],
+  leftR32: [3, 6, 1, 4, 12, 11, 10, 9],
+  rightR32: [2, 5, 7, 8, 15, 14, 13, 16],
+  leftR16: [2, 1, 3, 4],
+  rightR16: [5, 6, 7, 8],
   leftQf: [1, 2],
   rightQf: [3, 4],
   leftSf: 1,
@@ -17,36 +18,41 @@ export const LAYOUT = {
 
 // Auto-avance: dado (stage, slot) ganador -> a qué (stage, slot, lado) va.
 // Para sf, el PERDEDOR va al 3er puesto (third, 1).
+// Cruces tomados del cuadro oficial FIFA Mundial 2026.
 type Target = { stage: string; slot: number; side: "home" | "away" };
 export const FORWARD: Record<string, Target> = {
+  // 16avos -> octavos
   "r32:1": { stage: "r16", slot: 1, side: "home" },
-  "r32:3": { stage: "r16", slot: 1, side: "away" },
-  "r32:2": { stage: "r16", slot: 2, side: "home" },
-  "r32:5": { stage: "r16", slot: 2, side: "away" },
-  "r32:11": { stage: "r16", slot: 3, side: "home" },
-  "r32:12": { stage: "r16", slot: 3, side: "away" },
-  "r32:9": { stage: "r16", slot: 4, side: "home" },
-  "r32:10": { stage: "r16", slot: 4, side: "away" },
-  "r32:4": { stage: "r16", slot: 5, side: "home" },
-  "r32:6": { stage: "r16", slot: 5, side: "away" },
+  "r32:4": { stage: "r16", slot: 1, side: "away" },
+  "r32:3": { stage: "r16", slot: 2, side: "home" },
+  "r32:6": { stage: "r16", slot: 2, side: "away" },
+  "r32:12": { stage: "r16", slot: 3, side: "home" },
+  "r32:11": { stage: "r16", slot: 3, side: "away" },
+  "r32:10": { stage: "r16", slot: 4, side: "home" },
+  "r32:9": { stage: "r16", slot: 4, side: "away" },
+  "r32:2": { stage: "r16", slot: 5, side: "home" },
+  "r32:5": { stage: "r16", slot: 5, side: "away" },
   "r32:7": { stage: "r16", slot: 6, side: "home" },
   "r32:8": { stage: "r16", slot: 6, side: "away" },
-  "r32:14": { stage: "r16", slot: 7, side: "home" },
-  "r32:16": { stage: "r16", slot: 7, side: "away" },
+  "r32:15": { stage: "r16", slot: 7, side: "home" },
+  "r32:14": { stage: "r16", slot: 7, side: "away" },
   "r32:13": { stage: "r16", slot: 8, side: "home" },
-  "r32:15": { stage: "r16", slot: 8, side: "away" },
-  "r16:1": { stage: "qf", slot: 1, side: "home" },
-  "r16:2": { stage: "qf", slot: 1, side: "away" },
-  "r16:5": { stage: "qf", slot: 2, side: "home" },
-  "r16:6": { stage: "qf", slot: 2, side: "away" },
-  "r16:3": { stage: "qf", slot: 3, side: "home" },
-  "r16:4": { stage: "qf", slot: 3, side: "away" },
+  "r32:16": { stage: "r16", slot: 8, side: "away" },
+  // octavos -> cuartos
+  "r16:2": { stage: "qf", slot: 1, side: "home" },
+  "r16:1": { stage: "qf", slot: 1, side: "away" },
+  "r16:3": { stage: "qf", slot: 2, side: "home" },
+  "r16:4": { stage: "qf", slot: 2, side: "away" },
+  "r16:5": { stage: "qf", slot: 3, side: "home" },
+  "r16:6": { stage: "qf", slot: 3, side: "away" },
   "r16:7": { stage: "qf", slot: 4, side: "home" },
   "r16:8": { stage: "qf", slot: 4, side: "away" },
+  // cuartos -> semis
   "qf:1": { stage: "sf", slot: 1, side: "home" },
   "qf:2": { stage: "sf", slot: 1, side: "away" },
   "qf:3": { stage: "sf", slot: 2, side: "home" },
   "qf:4": { stage: "sf", slot: 2, side: "away" },
+  // semis -> final
   "sf:1": { stage: "final", slot: 1, side: "home" },
   "sf:2": { stage: "final", slot: 1, side: "away" },
 };
