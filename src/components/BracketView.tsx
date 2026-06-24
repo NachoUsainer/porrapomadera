@@ -53,7 +53,7 @@ export default function BracketView({
           text={
             view === "mine"
               ? "Podrás rellenar tu propio cuadro hasta el campeón cuando se cierren los grupos. Se bloquea al empezar los 16avos y puntúa por cada selección que acierte ronda."
-              : "Cuando todos hayáis rellenado vuestro cuadro, aquí podrás cotillear el de cualquier rival para el pique."
+              : "Cuando todos hayáis rellenado vuestro cuadro, aquí podrás cotillear los cuadros de cualquier rival, menos de Meo Lessi que lo he tirado al carrer."
           }
         />
       )}
