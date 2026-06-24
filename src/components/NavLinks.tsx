@@ -8,6 +8,7 @@ export default function NavLinks({ showPredictions }: { showPredictions: boolean
   const items = [
     { href: "/ranking", label: "Ranking" },
     { href: "/partidos", label: "Partidos" },
+    { href: "/cuadro", label: "Cuadro" },
     ...(showPredictions ? [{ href: "/predictions", label: "Predicciones" }] : []),
     { href: "/admin", label: "Admin" },
   ];

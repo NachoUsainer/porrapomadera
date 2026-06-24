@@ -17,6 +17,7 @@ import {
 } from "./notifications";
 import { MAX_WAGER } from "./scoring";
 import { REACTION_KEYS } from "./reactions";
+import { FORWARD, THIRD_FROM_SF, slotFromLabel } from "./bracket";
 import {
   hashPin,
   verifyPin,
@@ -471,6 +472,51 @@ export async function adminAddMatch(
   return {};
 }
 
+// Auto-avance del cuadro: cuando un partido de eliminatorias se resuelve, el
+// ganador rellena solo el hueco del siguiente cruce (y el perdedor de semis, el
+// 3er puesto). Si se "des-finaliza" o queda sin ganador, limpia ese hueco.
+async function propagateKnockout(matchId: number) {
+  const { data: m } = await supabase
+    .from("matches")
+    .select("stage, label, home_team_id, away_team_id, home_score, away_score, advance_team_id, finished")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (!m || !["r32", "r16", "qf", "sf"].includes(m.stage)) return;
+
+  const slot = slotFromLabel(m.stage, m.label);
+
+  let winnerId: number | null = null;
+  let loserId: number | null = null;
+  if (m.finished) {
+    if (m.advance_team_id) winnerId = m.advance_team_id;
+    else if (m.home_score != null && m.away_score != null && m.home_score !== m.away_score) {
+      winnerId = m.home_score > m.away_score ? m.home_team_id : m.away_team_id;
+    }
+    if (winnerId) loserId = winnerId === m.home_team_id ? m.away_team_id : m.home_team_id;
+  }
+
+  const setSlot = async (
+    stage: string,
+    targetSlot: number,
+    side: "home" | "away",
+    teamId: number | null
+  ) => {
+    const { data: rows } = await supabase.from("matches").select("id, label").eq("stage", stage);
+    const tgt = (rows ?? []).find((r) => slotFromLabel(stage, r.label) === targetSlot);
+    if (!tgt) return;
+    const col = side === "home" ? "home_team_id" : "away_team_id";
+    await supabase.from("matches").update({ [col]: teamId }).eq("id", tgt.id);
+  };
+
+  const fwd = FORWARD[`${m.stage}:${slot}`];
+  if (fwd) await setSlot(fwd.stage, fwd.slot, fwd.side, winnerId);
+
+  if (m.stage === "sf") {
+    const side = THIRD_FROM_SF[slot];
+    if (side) await setSlot("third", 1, side, loserId);
+  }
+}
+
 export async function adminSetResult(
   _prev: ActionResult,
   formData: FormData
@@ -506,9 +552,11 @@ export async function adminSetResult(
   }
 
   await genMatchNotifications(matchId);
+  await propagateKnockout(matchId);
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/predictions");
+  revalidatePath("/cuadro");
   return {};
 }
 
@@ -533,6 +581,7 @@ export async function adminSetMatchTeams(
   if (error) return { error: "No se pudo actualizar el cruce." };
   revalidatePath("/admin");
   revalidatePath("/predictions");
+  revalidatePath("/cuadro");
   return {};
 }
 
