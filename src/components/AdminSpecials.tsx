@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { adminSetGroupResults, adminSetTopScorer } from "@/lib/actions";
 import { flagFor } from "@/lib/flags";
 import type { Team } from "@/lib/supabase";
@@ -16,6 +16,7 @@ export default function AdminSpecials({
 }) {
   const [gState, gAction, gPending] = useActionState(adminSetGroupResults, {});
   const [sState, sAction, sPending] = useActionState(adminSetTopScorer, {});
+  const [scorer, setScorer] = useState(topScorer);
 
   const winnerByGroup = new Map(
     groupResults.map((g) => [g.group_name, g.winner_team_id])
@@ -23,6 +24,14 @@ export default function AdminSpecials({
   const groupNames = [
     ...new Set(teams.map((t) => t.group_name).filter(Boolean) as string[]),
   ].sort();
+
+  // Selects controlados: React 19 resetea los campos no controlados al enviar
+  // el form-action, lo que hacía "desaparecer" el campeón recién guardado.
+  const [picks, setPicks] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      groupNames.map((n) => [n, String(winnerByGroup.get(n) ?? "")])
+    )
+  );
 
   return (
     <section className="card space-y-6 p-5">
@@ -44,7 +53,10 @@ export default function AdminSpecials({
                   Grupo {name}
                   <select
                     name={`gr_${name}`}
-                    defaultValue={winnerByGroup.get(name) ?? ""}
+                    value={picks[name] ?? ""}
+                    onChange={(e) =>
+                      setPicks((p) => ({ ...p, [name]: e.target.value }))
+                    }
                     className="input"
                   >
                     <option value="">— sin definir —</option>
@@ -79,7 +91,8 @@ export default function AdminSpecials({
         <form action={sAction} className="flex flex-wrap items-center gap-2">
           <input
             name="top_scorer"
-            defaultValue={topScorer}
+            value={scorer}
+            onChange={(e) => setScorer(e.target.value)}
             placeholder="Ej: Mbappé"
             className="input flex-1"
           />
