@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { adminSetGroupResults, adminSetTopScorer } from "@/lib/actions";
 import { flagFor } from "@/lib/flags";
 import type { Team } from "@/lib/supabase";
@@ -16,7 +16,6 @@ export default function AdminSpecials({
 }) {
   const [gState, gAction, gPending] = useActionState(adminSetGroupResults, {});
   const [sState, sAction, sPending] = useActionState(adminSetTopScorer, {});
-  const [scorer, setScorer] = useState(topScorer);
 
   const winnerByGroup = new Map(
     groupResults.map((g) => [g.group_name, g.winner_team_id])
@@ -24,14 +23,6 @@ export default function AdminSpecials({
   const groupNames = [
     ...new Set(teams.map((t) => t.group_name).filter(Boolean) as string[]),
   ].sort();
-
-  // Selects controlados: React 19 resetea los campos no controlados al enviar
-  // el form-action, lo que hacía "desaparecer" el campeón recién guardado.
-  const [picks, setPicks] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      groupNames.map((n) => [n, String(winnerByGroup.get(n) ?? "")])
-    )
-  );
 
   return (
     <section className="card space-y-6 p-5">
@@ -52,11 +43,9 @@ export default function AdminSpecials({
                 <label key={name} className="flex flex-col gap-1 text-xs text-subtle">
                   Grupo {name}
                   <select
+                    key={`${name}-${winnerByGroup.get(name) ?? ""}`}
                     name={`gr_${name}`}
-                    value={picks[name] ?? ""}
-                    onChange={(e) =>
-                      setPicks((p) => ({ ...p, [name]: e.target.value }))
-                    }
+                    defaultValue={winnerByGroup.get(name) ?? ""}
                     className="input"
                   >
                     <option value="">— sin definir —</option>
@@ -90,9 +79,9 @@ export default function AdminSpecials({
         </p>
         <form action={sAction} className="flex flex-wrap items-center gap-2">
           <input
+            key={topScorer}
             name="top_scorer"
-            value={scorer}
-            onChange={(e) => setScorer(e.target.value)}
+            defaultValue={topScorer}
             placeholder="Ej: Mbappé"
             className="input flex-1"
           />

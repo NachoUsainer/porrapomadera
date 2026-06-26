@@ -702,11 +702,14 @@ export async function adminSetGroupResults(
   formData: FormData
 ): Promise<ActionResult> {
   await requireAdmin();
-  const rows: { group_name: string; winner_team_id: number | null }[] = [];
+  // Solo escribimos los grupos con campeón elegido. No metemos filas null:
+  // así un grupo ya guardado nunca se borra por un fallo visual del formulario.
+  const rows: { group_name: string; winner_team_id: number }[] = [];
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith("gr_")) continue;
-    const group = key.slice(3);
-    rows.push({ group_name: group, winner_team_id: value ? Number(value) : null });
+    const teamId = Number(value);
+    if (!teamId) continue;
+    rows.push({ group_name: key.slice(3), winner_team_id: teamId });
   }
   if (rows.length) {
     const { error } = await supabase
