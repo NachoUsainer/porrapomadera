@@ -66,84 +66,143 @@ export function slotFromLabel(stage: string, label: string | null): number {
   return m ? Number(m[1]) : 0;
 }
 
-// ---------- Generador del SVG de llaves ----------
-export type Cell = { label: string; win: boolean };
-export type BoxFn = (stage: string, slot: number) => { home: Cell; away: Cell };
+// ---------- Feeders: de qué dos slots viene cada cruce (inverso de FORWARD) ----------
+export type Feeder = { home: string; away: string };
+export const FEEDERS: Record<string, Feeder> = (() => {
+  const f: Record<string, Feeder> = {};
+  for (const [src, t] of Object.entries(FORWARD)) {
+    const key = `${t.stage}:${t.slot}`;
+    if (!f[key]) f[key] = { home: "", away: "" };
+    f[key][t.side] = src;
+  }
+  return f;
+})();
 
-const INK = "#1d1d1f";
-const SUB = "#6e6e73";
-const HAIR = "#dcdce0";
-const WIN_BG = "#e7f6ec";
-const WIN_TX = "#15803d";
+// ---------- Puntuación del cuadro por ronda (ajustable) ----------
+export const ROUND_POINTS: Record<string, number> = {
+  r32: 1,
+  r16: 2,
+  qf: 4,
+  sf: 6,
+  final: 10,
+};
+export const ROUND_LABEL: Record<string, string> = {
+  r32: "16avos",
+  r16: "octavos",
+  qf: "cuartos",
+  sf: "semis",
+  final: "campeón",
+};
 
-export function buildBracketSvg(box: BoxFn): string {
-  const W = 1250;
-  const bw = 120;
-  const boxH = 38;
-  const leftX = [10, 150, 290, 430];
-  const rightX = [1120, 980, 840, 700];
-  const finalX = 565;
-  const c0 = [44, 108, 172, 236, 300, 364, 428, 492];
-  const c1 = [76, 204, 332, 460];
-  const c2 = [140, 396];
-  const c3 = 268;
+// Slots del cuadro que se pueden pronosticar (de 16avos al campeón). 31 en total.
+export const PICK_SLOTS: string[] = [
+  ...Array.from({ length: 16 }, (_, i) => `r32:${i + 1}`),
+  ...Array.from({ length: 8 }, (_, i) => `r16:${i + 1}`),
+  ...Array.from({ length: 4 }, (_, i) => `qf:${i + 1}`),
+  "sf:1",
+  "sf:2",
+  "final:1",
+];
 
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  let out = "";
+// Puntos de cuadro de un jugador: por cada slot acertado (su pick = quien paso de verdad).
+export function bracketScore(
+  picks: Record<string, number>,
+  advancerByKey: Map<string, number>
+): { points: number; hits: number } {
+  let points = 0;
+  let hits = 0;
+  for (const [key, teamId] of Object.entries(picks)) {
+    const stage = key.split(":")[0];
+    const adv = advancerByKey.get(key);
+    if (adv != null && adv === teamId) {
+      points += ROUND_POINTS[stage] ?? 0;
+      hits += 1;
+    }
+  }
+  return { points, hits };
+}
 
-  const cell = (x: number, y: number, c: Cell) => {
-    let g = "";
-    if (c.win) g += `<rect x="${x + 1}" y="${y}" width="${bw - 2}" height="${boxH / 2}" rx="3" fill="${WIN_BG}"/>`;
-    g += `<text x="${x + bw / 2}" y="${y + 13}" text-anchor="middle" font-size="9.5" font-weight="${c.win ? 600 : 400}" fill="${c.win ? WIN_TX : INK}">${esc(c.label)}</text>`;
-    return g;
+// ---------- Geometría de las llaves (para render interactivo en React) ----------
+export const GEO = {
+  W: 1250,
+  H: 588,
+  bw: 120,
+  boxH: 38,
+  leftX: [10, 150, 290, 430],
+  rightX: [1120, 980, 840, 700],
+  finalX: 565,
+  c0: [44, 108, 172, 236, 300, 364, 428, 492],
+  c1: [76, 204, 332, 460],
+  c2: [140, 396],
+  c3: 268,
+  thirdY: 540,
+};
+
+export type BBox = {
+  key: string;
+  stage: string;
+  slot: number;
+  x: number;
+  cy: number;
+  pickable: boolean;
+};
+
+// Posición de cada caja del cuadro (orden = LAYOUT, geometría = GEO).
+export function bracketBoxes(): BBox[] {
+  const b: BBox[] = [];
+  const push = (stage: string, slot: number, x: number, cy: number, pickable = true) =>
+    b.push({ key: `${stage}:${slot}`, stage, slot, x, cy, pickable });
+  LAYOUT.leftR32.forEach((s, i) => push("r32", s, GEO.leftX[0], GEO.c0[i]));
+  LAYOUT.leftR16.forEach((s, i) => push("r16", s, GEO.leftX[1], GEO.c1[i]));
+  LAYOUT.leftQf.forEach((s, i) => push("qf", s, GEO.leftX[2], GEO.c2[i]));
+  push("sf", LAYOUT.leftSf, GEO.leftX[3], GEO.c3);
+  LAYOUT.rightR32.forEach((s, i) => push("r32", s, GEO.rightX[0], GEO.c0[i]));
+  LAYOUT.rightR16.forEach((s, i) => push("r16", s, GEO.rightX[1], GEO.c1[i]));
+  LAYOUT.rightQf.forEach((s, i) => push("qf", s, GEO.rightX[2], GEO.c2[i]));
+  push("sf", LAYOUT.rightSf, GEO.rightX[3], GEO.c3);
+  push("final", 1, GEO.finalX, GEO.c3);
+  push("third", 1, GEO.finalX, GEO.thirdY, false);
+  return b;
+}
+
+export type Seg = { x1: number; y1: number; x2: number; y2: number };
+
+// Segmentos conectores de las llaves.
+export function bracketLines(): Seg[] {
+  const L: Seg[] = [];
+  const { bw, leftX, rightX, finalX, c0, c1, c2, c3 } = GEO;
+  const seg = (x1: number, y1: number, x2: number, y2: number) => L.push({ x1, y1, x2, y2 });
+  const conn = (fx: number, ya: number, yb: number, mid: number, nx: number, nc: number) => {
+    seg(fx, ya, mid, ya);
+    seg(fx, yb, mid, yb);
+    seg(mid, ya, mid, yb);
+    seg(mid, nc, nx, nc);
   };
-  const drawBox = (x: number, cy: number, stage: string, slot: number, hl?: boolean) => {
-    const top = cy - boxH / 2;
-    const b = box(stage, slot);
-    let g = `<rect x="${x}" y="${top}" width="${bw}" height="${boxH}" rx="5" fill="#fff" stroke="${hl ? "#0071e3" : HAIR}" stroke-width="${hl ? 1.5 : 1}"/>`;
-    g += `<line x1="${x}" y1="${cy}" x2="${x + bw}" y2="${cy}" stroke="${HAIR}"/>`;
-    g += cell(x, top, b.home);
-    g += cell(x, cy, b.away);
-    return g;
-  };
-  const conn = (fx: number, ya: number, yb: number, midx: number, nx: number, nc: number) =>
-    `<line x1="${fx}" y1="${ya}" x2="${midx}" y2="${ya}" stroke="${HAIR}"/>` +
-    `<line x1="${fx}" y1="${yb}" x2="${midx}" y2="${yb}" stroke="${HAIR}"/>` +
-    `<line x1="${midx}" y1="${ya}" x2="${midx}" y2="${yb}" stroke="${HAIR}"/>` +
-    `<line x1="${midx}" y1="${nc}" x2="${nx}" y2="${nc}" stroke="${HAIR}"/>`;
-
-  // Conectores (debajo de las cajas)
-  for (let j = 0; j < 4; j++) { const fx = leftX[0] + bw, nx = leftX[1], mid = (fx + nx) / 2; out += conn(fx, c0[2 * j], c0[2 * j + 1], mid, nx, c1[j]); }
-  for (let j = 0; j < 2; j++) { const fx = leftX[1] + bw, nx = leftX[2], mid = (fx + nx) / 2; out += conn(fx, c1[2 * j], c1[2 * j + 1], mid, nx, c2[j]); }
-  { const fx = leftX[2] + bw, nx = leftX[3], mid = (fx + nx) / 2; out += conn(fx, c2[0], c2[1], mid, nx, c3); }
-  out += `<line x1="${leftX[3] + bw}" y1="${c3}" x2="${finalX}" y2="${c3}" stroke="${HAIR}"/>`;
-  for (let j = 0; j < 4; j++) { const fx = rightX[0], nx = rightX[1] + bw, mid = (fx + nx) / 2; out += conn(fx, c0[2 * j], c0[2 * j + 1], mid, nx, c1[j]); }
-  for (let j = 0; j < 2; j++) { const fx = rightX[1], nx = rightX[2] + bw, mid = (fx + nx) / 2; out += conn(fx, c1[2 * j], c1[2 * j + 1], mid, nx, c2[j]); }
-  { const fx = rightX[2], nx = rightX[3] + bw, mid = (fx + nx) / 2; out += conn(fx, c2[0], c2[1], mid, nx, c3); }
-  out += `<line x1="${rightX[3]}" y1="${c3}" x2="${finalX + bw}" y2="${c3}" stroke="${HAIR}"/>`;
-
-  // Cajas
-  LAYOUT.leftR32.forEach((s, i) => { out += drawBox(leftX[0], c0[i], "r32", s); });
-  LAYOUT.leftR16.forEach((s, i) => { out += drawBox(leftX[1], c1[i], "r16", s); });
-  LAYOUT.leftQf.forEach((s, i) => { out += drawBox(leftX[2], c2[i], "qf", s); });
-  out += drawBox(leftX[3], c3, "sf", LAYOUT.leftSf);
-  LAYOUT.rightR32.forEach((s, i) => { out += drawBox(rightX[0], c0[i], "r32", s); });
-  LAYOUT.rightR16.forEach((s, i) => { out += drawBox(rightX[1], c1[i], "r16", s); });
-  LAYOUT.rightQf.forEach((s, i) => { out += drawBox(rightX[2], c2[i], "qf", s); });
-  out += drawBox(rightX[3], c3, "sf", LAYOUT.rightSf);
-  out += drawBox(finalX, c3, "final", 1, true);
-  out += `<text x="${finalX + bw / 2}" y="${c3 - boxH / 2 - 8}" text-anchor="middle" font-size="11" font-weight="600" fill="#0071e3">Final</text>`;
-  out += drawBox(finalX, 540, "third", 1);
-  out += `<text x="${finalX + bw / 2}" y="${540 - boxH / 2 - 6}" text-anchor="middle" font-size="9" fill="${SUB}">3º y 4º puesto</text>`;
-
-  // Cabeceras
-  const heads: [number, string][] = [
-    [leftX[0] + bw / 2, "16avos"], [leftX[1] + bw / 2, "Octavos"], [leftX[2] + bw / 2, "Cuartos"],
-    [leftX[3] + bw / 2, "Semis"], [finalX + bw / 2, "Final"], [rightX[3] + bw / 2, "Semis"],
-    [rightX[2] + bw / 2, "Cuartos"], [rightX[1] + bw / 2, "Octavos"], [rightX[0] + bw / 2, "16avos"],
-  ];
-  heads.forEach(([x, t]) => { out += `<text x="${x}" y="16" text-anchor="middle" font-size="10" fill="${SUB}">${t}</text>`; });
-
-  return `<svg viewBox="0 0 ${W} 588" width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="display:block;height:auto">${out}</svg>`;
+  for (let j = 0; j < 4; j++) {
+    const fx = leftX[0] + bw, nx = leftX[1], mid = (fx + nx) / 2;
+    conn(fx, c0[2 * j], c0[2 * j + 1], mid, nx, c1[j]);
+  }
+  for (let j = 0; j < 2; j++) {
+    const fx = leftX[1] + bw, nx = leftX[2], mid = (fx + nx) / 2;
+    conn(fx, c1[2 * j], c1[2 * j + 1], mid, nx, c2[j]);
+  }
+  {
+    const fx = leftX[2] + bw, nx = leftX[3], mid = (fx + nx) / 2;
+    conn(fx, c2[0], c2[1], mid, nx, c3);
+  }
+  seg(leftX[3] + bw, c3, finalX, c3);
+  for (let j = 0; j < 4; j++) {
+    const fx = rightX[0], nx = rightX[1] + bw, mid = (fx + nx) / 2;
+    conn(fx, c0[2 * j], c0[2 * j + 1], mid, nx, c1[j]);
+  }
+  for (let j = 0; j < 2; j++) {
+    const fx = rightX[1], nx = rightX[2] + bw, mid = (fx + nx) / 2;
+    conn(fx, c1[2 * j], c1[2 * j + 1], mid, nx, c2[j]);
+  }
+  {
+    const fx = rightX[2], nx = rightX[3] + bw, mid = (fx + nx) / 2;
+    conn(fx, c2[0], c2[1], mid, nx, c3);
+  }
+  seg(rightX[3], c3, finalX + bw, c3);
+  return L;
 }

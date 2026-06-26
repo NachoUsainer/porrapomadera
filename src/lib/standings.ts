@@ -6,6 +6,19 @@ import {
   computeBetEffects,
   type LeaderboardRow,
 } from "./scoring";
+import { slotFromLabel, bracketScore } from "./bracket";
+
+const KO_STAGES = ["r32", "r16", "qf", "sf", "final"];
+
+// Quién pasó de verdad en un partido KO (el que avanza, o el de más goles).
+function advancerOf(m: Match): number | null {
+  if (!m.finished) return null;
+  if (m.advance_team_id) return m.advance_team_id;
+  if (m.home_score != null && m.away_score != null && m.home_score !== m.away_score) {
+    return m.home_score > m.away_score ? m.home_team_id : m.away_team_id;
+  }
+  return null;
+}
 
 export type Bet = {
   id: string;
@@ -57,6 +70,27 @@ export async function getStandings(): Promise<Standings> {
   const bets = (betsData ?? []) as Bet[];
   const wagers = (wagersData ?? []) as Wager[];
 
+  // ---- Puntos del cuadro (bracket) ----
+  const { data: bracketRows } = await supabase
+    .from("bracket_picks")
+    .select("player_id, slot, team_id");
+  const advancerByKey = new Map<string, number>();
+  for (const m of (matches ?? []) as Match[]) {
+    if (!KO_STAGES.includes(m.stage)) continue;
+    const adv = advancerOf(m);
+    if (adv != null) advancerByKey.set(`${m.stage}:${slotFromLabel(m.stage, m.label)}`, adv);
+  }
+  const picksByPlayer = new Map<string, Record<string, number>>();
+  for (const r of bracketRows ?? []) {
+    const rec = picksByPlayer.get(r.player_id) ?? {};
+    rec[r.slot] = r.team_id;
+    picksByPlayer.set(r.player_id, rec);
+  }
+  const bracketByPlayer = new Map<string, { points: number; hits: number }>();
+  for (const [pid, picks] of picksByPlayer) {
+    bracketByPlayer.set(pid, bracketScore(picks, advancerByKey));
+  }
+
   const bonus = bonusByPlayer(
     gwPreds ?? [],
     gResults ?? [],
@@ -72,7 +106,8 @@ export async function getStandings(): Promise<Standings> {
     (matches ?? []) as Match[],
     (predictions ?? []) as Prediction[],
     bonus,
-    betNet
+    betNet,
+    bracketByPlayer
   );
   const total = new Map(leaderboard.map((r) => [r.playerId, r.points]));
 

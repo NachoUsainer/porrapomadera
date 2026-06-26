@@ -50,7 +50,7 @@ export default async function RankingPage() {
           </div>
         ) : (
           <div className="card overflow-x-auto">
-            <table className="w-full min-w-[660px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-subtle">
                   <th className="w-10 py-3 pl-5 pr-2 font-medium">#</th>
@@ -60,6 +60,7 @@ export default async function RankingPage() {
                   <th className="px-3 py-3 text-center font-medium">Elim.</th>
                   <th className="px-3 py-3 text-center font-medium">Grupo</th>
                   <th className="px-3 py-3 text-center font-medium">Goleador</th>
+                  <th className="px-3 py-3 text-center font-medium">Cuadro</th>
                   <th className="px-3 py-3 text-center font-medium">Apuestas</th>
                   <th className="sticky right-0 bg-[#eaf1fb] px-5 py-3 text-right font-semibold text-accent shadow-[-6px_0_10px_-6px_rgba(0,0,0,0.12)]">
                     Puntos
@@ -87,6 +88,13 @@ export default async function RankingPage() {
                       <td className="px-3 py-3 text-center tnum">
                         {row.scorerHit ? (
                           <span className="text-green-600">+{POINTS.TOP_SCORER}</span>
+                        ) : (
+                          <span className="text-black/20">–</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center tnum">
+                        {row.bracketPoints > 0 ? (
+                          <span className="text-green-600">+{row.bracketPoints}</span>
                         ) : (
                           <span className="text-black/20">–</span>
                         )}
@@ -138,6 +146,10 @@ export default async function RankingPage() {
           <li>
             <span className="font-medium text-ink">+{POINTS.TOP_SCORER} pts</span> · acertar el
             máximo goleador del torneo.
+          </li>
+          <li>
+            <span className="font-medium text-ink">Cuadro</span> · acertar quién pasa cada
+            cruce: octavos +2, cuartos +4, semis +6, campeón +10 (16avos +1).
           </li>
         </ul>
       </section>

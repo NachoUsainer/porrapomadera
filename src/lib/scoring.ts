@@ -153,6 +153,8 @@ export type LeaderboardRow = {
   advanceHits: number; // nº de bonus de eliminatoria acertados (+2)
   groupHits: number; // nº de campeones de grupo acertados (+3)
   scorerHit: boolean; // acertó el máximo goleador (+8)
+  bracketPoints: number; // puntos del cuadro (quién pasa por ronda)
+  bracketHits: number; // nº de cruces acertados en el cuadro
   played: number; // nº de partidos finalizados con predicción
 };
 
@@ -163,7 +165,8 @@ export function buildLeaderboard(
   matches: Match[],
   predictions: Prediction[],
   bonus?: Map<string, Bonus>,
-  betNet?: Map<string, number>
+  betNet?: Map<string, number>,
+  bracketByPlayer?: Map<string, { points: number; hits: number }>
 ): LeaderboardRow[] {
   const matchById = new Map(matches.map((m) => [m.id, m]));
   const rows = new Map<string, LeaderboardRow>();
@@ -172,10 +175,11 @@ export function buildLeaderboard(
     const bObj = bonus?.get(p.id);
     const b = bObj?.points ?? 0;
     const bn = betNet?.get(p.id) ?? 0;
+    const brk = bracketByPlayer?.get(p.id);
     rows.set(p.id, {
       playerId: p.id,
       name: p.name,
-      points: b + bn, // arranca con especiales + saldo de apuestas
+      points: b + bn + (brk?.points ?? 0), // arranca con especiales + apuestas + cuadro
       bonus: b,
       betNet: bn,
       exact: 0,
@@ -183,6 +187,8 @@ export function buildLeaderboard(
       advanceHits: 0,
       groupHits: bObj?.groupHits ?? 0,
       scorerHit: bObj?.scorerHit ?? false,
+      bracketPoints: brk?.points ?? 0,
+      bracketHits: brk?.hits ?? 0,
       played: 0,
     });
   }

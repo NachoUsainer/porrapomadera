@@ -17,7 +17,9 @@ import {
 } from "./notifications";
 import { MAX_WAGER } from "./scoring";
 import { REACTION_KEYS } from "./reactions";
-import { FORWARD, THIRD_FROM_SF, slotFromLabel } from "./bracket";
+import { FORWARD, THIRD_FROM_SF, slotFromLabel, FEEDERS, PICK_SLOTS } from "./bracket";
+
+const KO_STAGES = ["r32", "r16", "qf", "sf", "final"];
 import {
   hashPin,
   verifyPin,
@@ -236,6 +238,73 @@ export async function saveScorer(
 
   revalidatePath("/predictions");
   revalidatePath("/");
+  return { saved: true };
+}
+
+// ============================================================
+//  CUADRO / BRACKET CHALLENGE
+//  Guarda el cuadro completo del jugador (quién pasa en cada cruce).
+//  Editable hasta el primer partido de eliminatorias; luego se congela.
+// ============================================================
+export async function saveBracketPicks(
+  picks: Record<string, number>
+): Promise<ActionResult> {
+  const player = await getCurrentPlayer();
+  if (!player) return { error: "Tienes que iniciar sesión." };
+
+  const { data: koMatches } = await supabase
+    .from("matches")
+    .select("stage, label, home_team_id, away_team_id, kickoff")
+    .in("stage", KO_STAGES);
+
+  // Cierre: cuando empieza el primer partido de eliminatorias, el cuadro se congela.
+  const firstKo = (koMatches ?? [])
+    .map((m) => (m.kickoff ? new Date(m.kickoff).getTime() : Infinity))
+    .sort((a, b) => a - b)[0];
+  if (firstKo != null && firstKo <= Date.now()) {
+    return { error: "El cuadro ya está cerrado: han empezado las eliminatorias." };
+  }
+
+  // Equipos reales por slot (para validar los 16avos).
+  const realBySlot = new Map<string, { home: number | null; away: number | null }>();
+  for (const m of koMatches ?? []) {
+    realBySlot.set(`${m.stage}:${slotFromLabel(m.stage, m.label)}`, {
+      home: m.home_team_id,
+      away: m.away_team_id,
+    });
+  }
+
+  // Validamos en orden (16avos -> final): cada pick debe ser uno de los dos
+  // equipos posibles de ese cruce (reales en 16avos, o tus picks anteriores).
+  const valid: Record<string, number> = {};
+  for (const slot of PICK_SLOTS) {
+    const pick = Number(picks[slot]);
+    if (!pick) continue;
+    const stage = slot.split(":")[0];
+    let cands: (number | null)[] = [];
+    if (stage === "r32") {
+      const rt = realBySlot.get(slot);
+      cands = rt ? [rt.home, rt.away] : [];
+    } else {
+      const f = FEEDERS[slot];
+      cands = [valid[f.home] ?? null, valid[f.away] ?? null];
+    }
+    if (cands.includes(pick)) valid[slot] = pick;
+  }
+
+  await supabase.from("bracket_picks").delete().eq("player_id", player.id);
+  const rows = Object.entries(valid).map(([slot, team_id]) => ({
+    player_id: player.id,
+    slot,
+    team_id,
+  }));
+  if (rows.length) {
+    const { error } = await supabase.from("bracket_picks").insert(rows);
+    if (error) return { error: "No se pudo guardar el cuadro." };
+  }
+
+  revalidatePath("/cuadro");
+  revalidatePath("/ranking");
   return { saved: true };
 }
 
