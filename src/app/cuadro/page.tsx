@@ -67,16 +67,20 @@ export default async function CuadroPage() {
   const bySlot = new Map<string, KoMatch>();
   for (const m of ko) bySlot.set(`${m.stage}:${slotFromLabel(m.stage, m.label)}`, m);
 
+  const now = Date.now();
+
   // Datos por cada caja del cuadro
   const slotData: Record<string, SlotData> = {};
   for (const b of bracketBoxes()) {
     const m = bySlot.get(b.key);
     const [phHome, phAway] = placeholders(m?.label ?? null);
+    const kickoff = m?.kickoff ? new Date(m.kickoff).getTime() : Infinity;
     slotData[b.key] = {
       homeTeamId: m?.home_team_id ?? null,
       awayTeamId: m?.away_team_id ?? null,
       advancerId: m ? advancerOf(m) : null,
       finished: m?.finished ?? false,
+      started: kickoff <= now,
       phHome,
       phAway,
     };
@@ -86,7 +90,8 @@ export default async function CuadroPage() {
   const firstKoTime = ko
     .map((m) => (m.kickoff ? new Date(m.kickoff).getTime() : Infinity))
     .sort((a, b) => a - b)[0];
-  const locked = firstKoTime != null && firstKoTime !== Infinity && firstKoTime <= Date.now();
+  const firstKoStarted =
+    firstKoTime != null && firstKoTime !== Infinity && firstKoTime <= now;
   const firstKoLabel =
     firstKoTime != null && firstKoTime !== Infinity
       ? new Date(firstKoTime).toLocaleString("es-ES", {
@@ -121,7 +126,7 @@ export default async function CuadroPage() {
         slotData={slotData}
         myId={me?.id ?? null}
         picksByPlayer={picksByPlayer}
-        locked={locked}
+        firstKoStarted={firstKoStarted}
         firstKoLabel={firstKoLabel}
       />
     </div>

@@ -18,6 +18,7 @@ export type SlotData = {
   awayTeamId: number | null;
   advancerId: number | null;
   finished: boolean;
+  started: boolean;
   phHome: string;
   phAway: string;
 };
@@ -42,7 +43,7 @@ export default function BracketView({
   slotData,
   myId,
   picksByPlayer,
-  locked,
+  firstKoStarted,
   firstKoLabel,
 }: {
   teams: { id: number; name: string }[];
@@ -50,31 +51,44 @@ export default function BracketView({
   slotData: Record<string, SlotData>;
   myId: string | null;
   picksByPlayer: Record<string, Picks>;
-  locked: boolean;
+  firstKoStarted: boolean;
   firstKoLabel: string | null;
 }) {
   const teamName = useMemo(() => new Map(teams.map((t) => [t.id, t.name])), [teams]);
   const [view, setView] = useState<View>(myId ? "mine" : "real");
   const [rivalId, setRivalId] = useState<string>(players.find((p) => p.id !== myId)?.id ?? "");
   const [picks, setPicks] = useState<Picks>(() => ({ ...((myId && picksByPlayer[myId]) || {}) }));
+  const [savedSet, setSavedSet] = useState<Set<string>>(
+    () => new Set(Object.keys((myId && picksByPlayer[myId]) || {}))
+  );
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  const editable = view === "mine" && !!myId && !locked;
+  // ¿Se puede editar este cruce ahora mismo?
+  function slotEditable(key: string): boolean {
+    if (view !== "mine" || !myId) return false;
+    if (slotData[key]?.started) return false; // su partido ya empezó
+    if (!firstKoStarted) return true; // antes del primer KO, todo abierto
+    return !savedSet.has(key); // reenganche: solo cruces aún vacíos
+  }
 
   function normalize(p: Picks): Picks {
     const out: Picks = {};
     for (const slot of PICK_SLOTS) {
       const pickId = p[slot];
       if (!pickId) continue;
+      if (!slotEditable(slot)) {
+        out[slot] = pickId; // congelado o ya empezado: se mantiene tal cual
+        continue;
+      }
       const stage = slot.split(":")[0];
-      let cands: (number | null)[] = [];
+      const sd = slotData[slot];
+      let cands: (number | null)[];
       if (stage === "r32") {
-        const sd = slotData[slot];
         cands = sd ? [sd.homeTeamId, sd.awayTeamId] : [];
       } else {
         const f = FEEDERS[slot];
-        cands = [out[f.home] ?? null, out[f.away] ?? null];
+        cands = [out[f.home] ?? sd?.homeTeamId ?? null, out[f.away] ?? sd?.awayTeamId ?? null];
       }
       if (cands.includes(pickId)) out[slot] = pickId;
     }
@@ -82,7 +96,7 @@ export default function BracketView({
   }
 
   function choose(slot: string, id: number | null) {
-    if (!editable || !id) return;
+    if (!slotEditable(slot) || !id) return;
     setSaved(false);
     setPicks((prev) => normalize({ ...prev, [slot]: id }));
   }
@@ -90,6 +104,7 @@ export default function BracketView({
   function save() {
     start(async () => {
       await saveBracketPicks(picks);
+      setSavedSet(new Set(Object.keys(picks)));
       setSaved(true);
     });
   }
@@ -118,20 +133,18 @@ export default function BracketView({
         },
       };
     }
-    // mine / rival: cascada desde los picks
+    // mine / rival: cascada desde los picks (o equipos reales si no hay pick previo)
     let homeId: number | null;
     let awayId: number | null;
-    let phH = "—";
-    let phA = "—";
+    let phH = sd?.phHome ?? "—";
+    let phA = sd?.phAway ?? "—";
     if (box.stage === "r32") {
       homeId = sd?.homeTeamId ?? null;
       awayId = sd?.awayTeamId ?? null;
-      phH = sd?.phHome ?? "—";
-      phA = sd?.phAway ?? "—";
     } else {
       const f = FEEDERS[box.key];
-      homeId = activePicks[f.home] ?? null;
-      awayId = activePicks[f.away] ?? null;
+      homeId = activePicks[f.home] ?? sd?.homeTeamId ?? null;
+      awayId = activePicks[f.away] ?? sd?.awayTeamId ?? null;
     }
     const myPick = activePicks[box.key] ?? null;
     const adv = sd?.advancerId ?? null;
@@ -147,7 +160,6 @@ export default function BracketView({
     };
   }
 
-  // Puntuación / progreso del cuadro activo
   const score = useMemo(() => {
     let pts = 0;
     let hits = 0;
@@ -164,6 +176,9 @@ export default function BracketView({
     }
     return { pts, hits, filled };
   }, [activePicks, slotData]);
+
+  const openCount =
+    view === "mine" && myId ? PICK_SLOTS.filter((s) => slotEditable(s)).length : 0;
 
   const boxes = bracketBoxes();
   const lines = bracketLines();
@@ -216,7 +231,6 @@ export default function BracketView({
         )}
       </div>
 
-      {/* Barra de estado */}
       {view === "mine" && myId && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-hair bg-white p-3 text-sm">
           <span className="text-subtle">
@@ -226,25 +240,25 @@ export default function BracketView({
             Aciertos <span className="font-semibold text-green-700 tnum">{score.hits}</span> ·{" "}
             <span className="font-semibold text-green-700 tnum">{score.pts} pts</span>
           </span>
-          {locked ? (
-            <span className="ml-auto rounded-full bg-black/[0.05] px-2.5 py-1 text-xs text-subtle">
-              Cuadro cerrado (empezaron las eliminatorias)
-            </span>
-          ) : (
+          {openCount > 0 ? (
             <span className="ml-auto flex items-center gap-3">
               {saved && <span className="text-xs text-green-700">Guardado</span>}
               <button onClick={save} disabled={pending} className="btn-primary py-1.5">
                 {pending ? "…" : "Guardar cuadro"}
               </button>
             </span>
+          ) : (
+            <span className="ml-auto rounded-full bg-black/[0.05] px-2.5 py-1 text-xs text-subtle">
+              Cuadro cerrado
+            </span>
           )}
         </div>
       )}
-      {view === "mine" && myId && !locked && (
+      {view === "mine" && myId && openCount > 0 && (
         <p className="mb-2 px-1 text-xs text-subtle">
-          Toca el equipo que crees que pasa en cada cruce. Empieza por los 16avos; los octavos
-          y siguientes se rellenan con tus ganadores. Editable hasta el primer partido
-          {firstKoLabel ? ` (${firstKoLabel})` : ""}. No olvides Guardar.
+          {firstKoStarted
+            ? `Reenganche abierto: te quedan ${openCount} cruces por poner (los que aún no han empezado). Los ya jugados no se pueden rellenar. No olvides Guardar.`
+            : `Toca el equipo que crees que pasa en cada cruce. Empieza por los 16avos; los octavos y siguientes se rellenan con tus ganadores. Editable hasta el primer partido${firstKoLabel ? ` (${firstKoLabel})` : ""}. No olvides Guardar.`}
         </p>
       )}
       {view === "rival" && (
@@ -269,14 +283,7 @@ export default function BracketView({
               style={{ display: "block", height: "auto" }}
             >
               {lines.map((l, i) => (
-                <line
-                  key={i}
-                  x1={l.x1}
-                  y1={l.y1}
-                  x2={l.x2}
-                  y2={l.y2}
-                  stroke={HAIR}
-                />
+                <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={HAIR} />
               ))}
               {heads.map(([x, t], i) => (
                 <text key={`h${i}`} x={x} y={16} textAnchor="middle" fontSize="10" fill={SUB}>
@@ -295,7 +302,7 @@ export default function BracketView({
               {boxes.map((box) => {
                 const c = cellsOf(box);
                 const top = box.cy - boxH / 2;
-                const clickable = editable && box.pickable;
+                const clickable = box.pickable && slotEditable(box.key);
                 const Cell = ({
                   cell,
                   y,
@@ -321,13 +328,7 @@ export default function BracketView({
                         />
                       )}
                       {canClick && (
-                        <rect
-                          x={box.x}
-                          y={y}
-                          width={bw}
-                          height={boxH / 2}
-                          fill="transparent"
-                        />
+                        <rect x={box.x} y={y} width={bw} height={boxH / 2} fill="transparent" />
                       )}
                       <text
                         x={box.x + bw / 2}
@@ -355,13 +356,7 @@ export default function BracketView({
                       stroke={box.stage === "final" ? "#0071e3" : HAIR}
                       strokeWidth={box.stage === "final" ? 1.5 : 1}
                     />
-                    <line
-                      x1={box.x}
-                      y1={box.cy}
-                      x2={box.x + bw}
-                      y2={box.cy}
-                      stroke={HAIR}
-                    />
+                    <line x1={box.x} y1={box.cy} x2={box.x + bw} y2={box.cy} stroke={HAIR} />
                     <Cell cell={c.home} y={top} />
                     <Cell cell={c.away} y={box.cy} />
                   </g>

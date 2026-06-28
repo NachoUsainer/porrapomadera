@@ -243,8 +243,11 @@ export async function saveScorer(
 
 // ============================================================
 //  CUADRO / BRACKET CHALLENGE
-//  Guarda el cuadro completo del jugador (quién pasa en cada cruce).
-//  Editable hasta el primer partido de eliminatorias; luego se congela.
+//  Guarda el cuadro del jugador (quién pasa en cada cruce).
+//  Cierre por cruce: cada llave se cierra a la hora de SU partido.
+//  Antes del primer KO todo es editable (te mojas a ciegas). Después,
+//  los cruces ya puestos quedan congelados, pero quien no llegó puede
+//  rellenar (reenganche) los cruces que aún no han empezado.
 // ============================================================
 export async function saveBracketPicks(
   picks: Record<string, number>
@@ -257,50 +260,74 @@ export async function saveBracketPicks(
     .select("stage, label, home_team_id, away_team_id, kickoff")
     .in("stage", KO_STAGES);
 
-  // Cierre: cuando empieza el primer partido de eliminatorias, el cuadro se congela.
-  const firstKo = (koMatches ?? [])
-    .map((m) => (m.kickoff ? new Date(m.kickoff).getTime() : Infinity))
-    .sort((a, b) => a - b)[0];
-  if (firstKo != null && firstKo <= Date.now()) {
-    return { error: "El cuadro ya está cerrado: han empezado las eliminatorias." };
-  }
-
-  // Equipos reales por slot (para validar los 16avos).
+  const now = Date.now();
+  const kickoffBySlot = new Map<string, number>();
   const realBySlot = new Map<string, { home: number | null; away: number | null }>();
   for (const m of koMatches ?? []) {
-    realBySlot.set(`${m.stage}:${slotFromLabel(m.stage, m.label)}`, {
-      home: m.home_team_id,
-      away: m.away_team_id,
-    });
+    const key = `${m.stage}:${slotFromLabel(m.stage, m.label)}`;
+    kickoffBySlot.set(key, m.kickoff ? new Date(m.kickoff).getTime() : Infinity);
+    realBySlot.set(key, { home: m.home_team_id, away: m.away_team_id });
   }
+  const firstKo = Math.min(...[...kickoffBySlot.values()], Infinity);
+  const firstKoStarted = firstKo <= now;
 
-  // Validamos en orden (16avos -> final): cada pick debe ser uno de los dos
-  // equipos posibles de ese cruce (reales en 16avos, o tus picks anteriores).
-  const valid: Record<string, number> = {};
+  // Picks ya guardados (para saber cuáles están congelados).
+  const { data: existingRows } = await supabase
+    .from("bracket_picks")
+    .select("slot, team_id")
+    .eq("player_id", player.id);
+  const existing = new Map<string, number>(
+    (existingRows ?? []).map((r) => [r.slot, r.team_id])
+  );
+
+  // Construimos el cuadro final (16avos -> final), respetando congelados.
+  const result: Record<string, number> = {};
   for (const slot of PICK_SLOTS) {
-    const pick = Number(picks[slot]);
-    if (!pick) continue;
+    const started = (kickoffBySlot.get(slot) ?? Infinity) <= now;
+    const had = existing.has(slot);
+    // Editable: el cruce no ha empezado Y (aún no arrancó el KO, o el slot está vacío).
+    const editable = !started && (!firstKoStarted || !had);
+    if (!editable) {
+      // Congelado o ya empezado: se conserva lo que hubiera.
+      if (had) result[slot] = existing.get(slot)!;
+      continue;
+    }
+    const value = Number(picks[slot]) || null;
+    if (!value) continue;
     const stage = slot.split(":")[0];
-    let cands: (number | null)[] = [];
+    const rt = realBySlot.get(slot);
+    let cands: (number | null)[];
     if (stage === "r32") {
-      const rt = realBySlot.get(slot);
       cands = rt ? [rt.home, rt.away] : [];
     } else {
+      // Candidatos: tus ganadores de los cruces previos, o los equipos reales
+      // (esto último permite el reenganche cuando ya se conoce el cruce real).
       const f = FEEDERS[slot];
-      cands = [valid[f.home] ?? null, valid[f.away] ?? null];
+      cands = [result[f.home] ?? rt?.home ?? null, result[f.away] ?? rt?.away ?? null];
     }
-    if (cands.includes(pick)) valid[slot] = pick;
+    if (cands.includes(value)) result[slot] = value;
   }
 
-  await supabase.from("bracket_picks").delete().eq("player_id", player.id);
-  const rows = Object.entries(valid).map(([slot, team_id]) => ({
+  // Upsert de lo que toca + borrar solo lo que el jugador quitó (pre-cierre).
+  const rows = Object.entries(result).map(([slot, team_id]) => ({
     player_id: player.id,
     slot,
     team_id,
   }));
   if (rows.length) {
-    const { error } = await supabase.from("bracket_picks").insert(rows);
+    const { error } = await supabase
+      .from("bracket_picks")
+      .upsert(rows, { onConflict: "player_id,slot" });
     if (error) return { error: "No se pudo guardar el cuadro." };
+  }
+  const keep = new Set(Object.keys(result));
+  const toDelete = [...existing.keys()].filter((s) => !keep.has(s));
+  if (toDelete.length) {
+    await supabase
+      .from("bracket_picks")
+      .delete()
+      .eq("player_id", player.id)
+      .in("slot", toDelete);
   }
 
   revalidatePath("/cuadro");
