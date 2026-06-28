@@ -129,6 +129,46 @@ export default async function CuadroPage() {
         firstKoStarted={firstKoStarted}
         firstKoLabel={firstKoLabel}
       />
+
+      <details className="card p-5 text-[15px] text-subtle [&_summary]:cursor-pointer">
+        <summary className="text-sm font-semibold uppercase tracking-wide text-ink">
+          Cómo funciona el cuadro
+        </summary>
+        <div className="mt-3 space-y-2.5">
+          <p>
+            Rellenas tu cuadro entero prediciendo <span className="text-ink">quién pasa</span> en
+            cada cruce, de los 16avos hasta el campeón. Empiezas por los 16avos y los octavos,
+            cuartos, etc. se van rellenando con <span className="text-ink">tus propios
+            ganadores</span>.
+          </p>
+          <p>
+            Cada cruce se <span className="text-ink">cierra al empezar su partido</span>; puedes
+            editarlo hasta entonces. Lo ideal es tenerlo completo antes de que arranquen las
+            eliminatorias. Si no llegas a tiempo, aún puedes engancharte y rellenar los cruces que{" "}
+            <span className="text-ink">todavía no hayan empezado</span> — con menos oportunidades,
+            porque los ya jugados no cuentan.
+          </p>
+          <p>
+            Tu cuadro se <span className="text-ink">superpone con la realidad</span> para puntuar:
+            en <span className="font-medium text-green-700">verde</span> lo que aciertas, tachado
+            lo que falla. Si tu favorito cae, esas rondas valen 0, pero{" "}
+            <span className="text-ink">sigues sumando</span> por todo lo que acertaste antes (tu
+            cuadro puede reventar, pero no te elimina).
+          </p>
+          <p>
+            <span className="text-ink">Puntos por ronda:</span> acertar quién pasa vale 16avos
+            <span className="text-ink"> +1</span>, octavos <span className="text-ink">+2</span>,
+            cuartos <span className="text-ink">+4</span>, semis <span className="text-ink">+6</span>{" "}
+            y campeón <span className="text-ink">+10</span>. Suman en la columna “Cuadro” del
+            ranking.
+          </p>
+          <p>
+            <span className="text-ink">Vistas:</span> <span className="text-ink">Real</span> es lo
+            que pasa de verdad; <span className="text-ink">Mi cuadro</span> es el tuyo (editable);{" "}
+            <span className="text-ink">Rivales</span> para cotillear el de cualquiera.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }
