@@ -1,4 +1,4 @@
-import { supabase, type Match, type Team } from "@/lib/supabase";
+import { supabase, fetchAll, type Match, type Team } from "@/lib/supabase";
 import { isAdmin } from "@/lib/session";
 import { getStandings } from "@/lib/standings";
 import { adminRegenNotifications } from "@/lib/actions";
@@ -21,16 +21,16 @@ export default async function AdminPage() {
     { data: teams },
     { data: matches },
     { data: players },
-    { data: preds },
     { data: groupResults },
     { data: settings },
+    preds,
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
     supabase.from("matches").select("*"),
     supabase.from("players").select("id, name, created_at, last_ip, signup_ip").order("created_at"),
-    supabase.from("predictions").select("player_id"),
     supabase.from("group_results").select("group_name, winner_team_id"),
     supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
+    fetchAll<{ player_id: string }>("predictions", "player_id"),
   ]);
 
   const predCount = new Map<string, number>();

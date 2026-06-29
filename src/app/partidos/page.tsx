@@ -1,4 +1,4 @@
-import { supabase, type Match, type Team, type Prediction } from "@/lib/supabase";
+import { supabase, fetchAll, type Match, type Team, type Prediction } from "@/lib/supabase";
 import { getCurrentPlayer } from "@/lib/session";
 import { isMatchLocked } from "@/lib/lock";
 import { scorePrediction } from "@/lib/scoring";
@@ -24,12 +24,12 @@ function fmt(iso: string | null): string {
 export default async function PartidosPage() {
   const me = await getCurrentPlayer();
 
-  const [{ data: matches }, { data: teams }, { data: players }, { data: preds }] =
+  const [{ data: matches }, { data: teams }, { data: players }, preds] =
     await Promise.all([
       supabase.from("matches").select("*"),
       supabase.from("teams").select("*"),
       supabase.from("players").select("id, name"),
-      supabase.from("predictions").select("*"),
+      fetchAll<Prediction>("predictions"), // paginar: >1000 filas si no, se pierden
     ]);
 
   const teamById = new Map((teams ?? []).map((t: Team) => [t.id, t]));

@@ -22,6 +22,28 @@ export const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
+// Supabase/PostgREST corta cada consulta a 1000 filas. Para tablas que pueden
+// superarlas (p.ej. predictions) hay que paginar o se pierden filas (¡y puntos!).
+export async function fetchAll<T = Record<string, unknown>>(
+  table: string,
+  columns = "*",
+  orderBy = "id"
+): Promise<T[]> {
+  const PAGE = 1000;
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .order(orderBy, { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+  }
+  return all;
+}
+
 // Tipos compartidos
 export type Team = {
   id: number;

@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase, type Match, type Prediction } from "./supabase";
+import { supabase, fetchAll, type Match, type Prediction } from "./supabase";
 import {
   buildLeaderboard,
   bonusByPlayer,
@@ -48,32 +48,31 @@ export async function getStandings(): Promise<Standings> {
   const [
     { data: players },
     { data: matches },
-    { data: predictions },
     { data: gwPreds },
     { data: gResults },
     { data: scorerPreds },
     { data: settings },
     { data: betsData },
-    { data: wagersData },
+    predictions,
+    wagers,
+    bracketRows,
   ] = await Promise.all([
     supabase.from("players").select("id, name"),
     supabase.from("matches").select("*"),
-    supabase.from("predictions").select("*"),
     supabase.from("group_winner_predictions").select("player_id, group_name, team_id"),
     supabase.from("group_results").select("group_name, winner_team_id"),
     supabase.from("scorer_predictions").select("player_id, player_name"),
     supabase.from("settings").select("key, value").eq("key", "top_scorer").maybeSingle(),
     supabase.from("special_bets").select("*"),
-    supabase.from("bet_wagers").select("id, bet_id, player_id, stake"),
+    // Estas pueden superar 1000 filas -> paginar SIEMPRE (afecta a los puntos).
+    fetchAll<Prediction>("predictions"),
+    fetchAll<Wager>("bet_wagers"),
+    fetchAll<{ player_id: string; slot: string; team_id: number }>("bracket_picks"),
   ]);
 
   const bets = (betsData ?? []) as Bet[];
-  const wagers = (wagersData ?? []) as Wager[];
 
   // ---- Puntos del cuadro (bracket) ----
-  const { data: bracketRows } = await supabase
-    .from("bracket_picks")
-    .select("player_id, slot, team_id");
   const advancerByKey = new Map<string, number>();
   for (const m of (matches ?? []) as Match[]) {
     if (!KO_STAGES.includes(m.stage)) continue;
